@@ -1,5 +1,4 @@
 #include "Label.h"
-#include "Parse.h"
 #include "ParseImpl.h"
 
 #include "../UI/Encyclopedia.h"
@@ -89,6 +88,10 @@ namespace {
 }
 
 namespace parse {
-    bool encyclopedia_articles(const boost::filesystem::path& path, Encyclopedia& enc)
-    { return detail::parse_file<rules, Encyclopedia>(path, enc); }
+    namespace lib{
+        bool encyclopedia_articles(const boost::filesystem::path& path, Encyclopedia& enc)
+        {
+            return detail::parse_file<rules, Encyclopedia>(path, enc);
+        }
+    }
 }

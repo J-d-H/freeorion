@@ -1,6 +1,5 @@
 #include "Double.h"
 #include "Label.h"
-#include "Parse.h"
 #include "ParseImpl.h"
 
 #include "../universe/Condition.h"
@@ -100,6 +99,10 @@ namespace {
 }
 
 namespace parse {
-    bool fields(const boost::filesystem::path& path, std::map<std::string, FieldType*>& field_types)
-    { return detail::parse_file<rules, std::map<std::string, FieldType*> >(path, field_types); }
+    namespace lib {
+        bool fields(const boost::filesystem::path& path, std::map<std::string, FieldType*>& field_types)
+        {
+            return detail::parse_file<rules, std::map<std::string, FieldType*> >(path, field_types);
+        }
+    }
 }

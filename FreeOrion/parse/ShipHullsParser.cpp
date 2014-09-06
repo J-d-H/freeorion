@@ -5,7 +5,6 @@
 #include "Double.h"
 #include "EnumParser.h"
 #include "Label.h"
-#include "Parse.h"
 #include "ParseImpl.h"
 #include "ValueRefParser.h"
 
@@ -267,6 +266,10 @@ namespace {
 }
 
 namespace parse {
-    bool ship_hulls(const boost::filesystem::path& path, std::map<std::string, HullType*>& hulls)
-    { return detail::parse_file<rules, std::map<std::string, HullType*> >(path, hulls); }
+    namespace lib {
+        bool ship_hulls(const boost::filesystem::path& path, std::map<std::string, HullType*>& hulls)
+        {
+            return detail::parse_file<rules, std::map<std::string, HullType*> >(path, hulls);
+        }
+    }
 }

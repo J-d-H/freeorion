@@ -147,6 +147,7 @@ set (freeorioncommon_HEADER
     network/Message.h
     network/MessageQueue.h
     network/Networking.h
+    parse/Parse.h
     python/PythonSetWrapper.h
     python/PythonWrappers.h
     universe/Building.h
@@ -224,6 +225,7 @@ set (freeorioncommon_SOURCE
     OpenSteer/src/SimpleVehicle.cpp
     OpenSteer/src/Vec3.cpp
     OpenSteer/src/Vec3Utilities.cpp
+    parse/Parse.cpp
     universe/Building.cpp
     universe/CombatData.cpp
     universe/Condition.cpp
@@ -302,6 +304,7 @@ target_link_libraries(freeorioncommon
     ${ZLIB_LIBRARIES}
     ${OPENGL_LIBRARIES}
     log4cpp
+    parse
 )
 
 set_target_properties(freeorioncommon
@@ -553,7 +556,7 @@ if (BUILD_SDK)
         StrCpy $7 $INSTDIR
         \\\${WordReplace} $7 \\\"\\\\\\\" \\\"/\\\" \\\"+\\\" $8
 
-	Rename $INSTDIR\\\\build\\\\GG\\\\CMakeCache.txt $INSTDIR\\\\build\\\\GG\\\\CMakeCache.txt.in
+    Rename $INSTDIR\\\\build\\\\GG\\\\CMakeCache.txt $INSTDIR\\\\build\\\\GG\\\\CMakeCache.txt.in
         FileOpen $0 $INSTDIR\\\\build\\\\GG\\\\CMakeCache.txt.in r
         FileOpen $5 $INSTDIR\\\\build\\\\GG\\\\CMakeCache.txt w
         ClearErrors
@@ -568,7 +571,7 @@ if (BUILD_SDK)
         FileClose $5
         Delete $INSTDIR\\\\build\\\\GG\\\\CMakeCache.txt.in
 
-	Rename $INSTDIR\\\\build\\\\CMakeCache.txt $INSTDIR\\\\build\\\\CMakeCache.txt.in
+    Rename $INSTDIR\\\\build\\\\CMakeCache.txt $INSTDIR\\\\build\\\\CMakeCache.txt.in
         FileOpen $0 $INSTDIR\\\\build\\\\CMakeCache.txt.in r
         FileOpen $5 $INSTDIR\\\\build\\\\CMakeCache.txt w
         ClearErrors

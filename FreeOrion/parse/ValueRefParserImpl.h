@@ -1,4 +1,7 @@
 // -*- C++ -*-
+#ifndef _ValueRefParserImpl_h_
+#define _ValueRefParserImpl_h_
+
 #include "ValueRefParser.h"
 
 #include "ConditionParserImpl.h"
@@ -308,3 +311,5 @@ void initialize_nonnumeric_statistic_parser(
              [ _val = new_<ValueRef::Statistic<T> >(_a, _b, _c) ]
         ;
 }
+
+#endif // _ValueRefParserImpl_h_

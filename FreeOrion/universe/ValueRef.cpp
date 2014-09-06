@@ -23,7 +23,7 @@
 #include <boost/algorithm/string.hpp>
 
 
-std::string DoubleToString(double val, int digits, bool always_show_sign);
+FO_COMMON_API std::string DoubleToString(double val, int digits, bool always_show_sign);
 
 namespace {
     TemporaryPtr<const UniverseObject> FollowReference(std::vector<std::string>::const_iterator first,
@@ -252,7 +252,7 @@ namespace ValueRef {
         if (std::abs(m_value) < 1000)
             return boost::lexical_cast<std::string>(m_value);
         return DoubleToString(m_value, 3, false);
-    }
+}
 
     template <>
     std::string Constant<double>::Description() const
@@ -838,6 +838,197 @@ namespace ValueRef {
 // Statistic                                             //
 ///////////////////////////////////////////////////////////
 namespace ValueRef {
+    namespace impl {
+        /** Computes the statistic from the specified set of property values. */
+        template <class T>
+        T ReduceData(Statistic<T> const * const that, const std::map<TemporaryPtr<const UniverseObject>, T>& object_property_values)
+        {
+            if (object_property_values.empty())
+                return T(0);
+
+            switch (that->m_stat_type) {
+            case COUNT: {
+                return T(object_property_values.size());
+                break;
+            }
+            case UNIQUE_COUNT: {
+                std::set<T> observed_values;
+                for (typename std::map<TemporaryPtr<const UniverseObject>, T>::const_iterator it = object_property_values.begin();
+                    it != object_property_values.end(); ++it)
+                {
+                    observed_values.insert(it->second);
+                }
+                return T(observed_values.size());
+                break;
+            }
+            case IF: {
+                if (object_property_values.empty())
+                    return T(0);
+                return T(1);
+                break;
+            }
+            case SUM: {
+                T accumulator(0);
+                for (typename std::map<TemporaryPtr<const UniverseObject>, T>::const_iterator it = object_property_values.begin();
+                    it != object_property_values.end(); ++it)
+                {
+                    accumulator += it->second;
+                }
+                return accumulator;
+                break;
+            }
+
+            case MEAN: {
+                T accumulator(0);
+                for (typename std::map<TemporaryPtr<const UniverseObject>, T>::const_iterator it = object_property_values.begin();
+                    it != object_property_values.end(); ++it)
+                {
+                    accumulator += it->second;
+                }
+                return accumulator / static_cast<T>(object_property_values.size());
+                break;
+            }
+
+            case RMS: {
+                T accumulator(0);
+                for (typename std::map<TemporaryPtr<const UniverseObject>, T>::const_iterator it = object_property_values.begin();
+                    it != object_property_values.end(); ++it)
+                {
+                    accumulator += (it->second * it->second);
+                }
+                accumulator /= static_cast<T>(object_property_values.size());
+
+                double retval = std::sqrt(static_cast<double>(accumulator));
+                return static_cast<T>(retval);
+                break;
+            }
+
+            case MODE: {
+                // count number of each result, tracking which has the most occurances
+                std::map<T, unsigned int> histogram;
+                typename std::map<T, unsigned int>::const_iterator most_common_property_value_it = histogram.begin();
+                unsigned int max_seen(0);
+
+                for (typename std::map<TemporaryPtr<const UniverseObject>, T>::const_iterator it = object_property_values.begin();
+                    it != object_property_values.end(); ++it)
+                {
+                    const T& property_value = it->second;
+
+                    typename std::map<T, unsigned int>::iterator hist_it = histogram.find(property_value);
+                    if (hist_it == histogram.end())
+                        hist_it = histogram.insert(std::make_pair(property_value, 0)).first;
+                    unsigned int& num_seen = hist_it->second;
+
+                    num_seen++;
+
+                    if (num_seen > max_seen) {
+                        most_common_property_value_it = hist_it;
+                        max_seen = num_seen;
+                    }
+                }
+
+                // return result (property value) that occured most frequently
+                return most_common_property_value_it->first;
+                break;
+            }
+
+            case MAX: {
+                typename std::map<TemporaryPtr<const UniverseObject>, T>::const_iterator max_it = object_property_values.begin();
+
+                for (typename std::map<TemporaryPtr<const UniverseObject>, T>::const_iterator it = object_property_values.begin();
+                    it != object_property_values.end(); ++it)
+                {
+                    const T& property_value = it->second;
+                    if (property_value > max_it->second)
+                        max_it = it;
+                }
+
+                // return maximal observed propery value
+                return max_it->second;
+                break;
+            }
+
+            case MIN: {
+                typename std::map<TemporaryPtr<const UniverseObject>, T>::const_iterator min_it = object_property_values.begin();
+
+                for (typename std::map<TemporaryPtr<const UniverseObject>, T>::const_iterator it = object_property_values.begin();
+                    it != object_property_values.end(); ++it)
+                {
+                    const T& property_value = it->second;
+                    if (property_value < min_it->second)
+                        min_it = it;
+                }
+
+                // return minimal observed propery value
+                return min_it->second;
+                break;
+            }
+
+            case SPREAD: {
+                typename std::map<TemporaryPtr<const UniverseObject>, T>::const_iterator max_it = object_property_values.begin();
+                typename std::map<TemporaryPtr<const UniverseObject>, T>::const_iterator min_it = object_property_values.begin();
+
+                for (typename std::map<TemporaryPtr<const UniverseObject>, T>::const_iterator it = object_property_values.begin();
+                    it != object_property_values.end(); ++it)
+                {
+                    const T& property_value = it->second;
+                    if (property_value > max_it->second)
+                        max_it = it;
+                    if (property_value < min_it->second)
+                        min_it = it;
+                }
+
+                // return difference between maximal and minimal observed propery values
+                return max_it->second - min_it->second;
+                break;
+            }
+
+            case STDEV: {
+                if (object_property_values.size() < 2)
+                    return T(0);
+
+                // find sample mean
+                T accumulator(0);
+                for (typename std::map<TemporaryPtr<const UniverseObject>, T>::const_iterator it = object_property_values.begin();
+                    it != object_property_values.end(); ++it)
+                {
+                    accumulator += it->second;
+                }
+                const T MEAN(accumulator / static_cast<T>(object_property_values.size()));
+
+                // find average of squared deviations from sample mean
+                accumulator = T(0);
+                for (typename std::map<TemporaryPtr<const UniverseObject>, T>::const_iterator it = object_property_values.begin();
+                    it != object_property_values.end(); ++it)
+                {
+                    accumulator += (it->second - MEAN) * (it->second - MEAN);
+                }
+                const T MEAN_DEV2(accumulator / static_cast<T>(static_cast<int>(object_property_values.size()) - 1));
+                double retval = std::sqrt(static_cast<double>(MEAN_DEV2));
+                return static_cast<T>(retval);
+                break;
+            }
+
+            case PRODUCT: {
+                T accumulator(1);
+                for (typename std::map<TemporaryPtr<const UniverseObject>, T>::const_iterator it = object_property_values.begin();
+                    it != object_property_values.end(); ++it)
+                {
+                    accumulator *= it->second;
+                }
+                return accumulator;
+                break;
+            }
+
+            default:
+                throw std::runtime_error("ValueRef evaluated with an unknown or invalid StatisticType.");
+                break;
+            }
+
+            return T(0);
+        }
+    }
+
     template <>
     double Statistic<double>::Eval(const ScriptingContext& context) const
     {
@@ -855,7 +1046,7 @@ namespace ValueRef {
         std::map<TemporaryPtr<const UniverseObject>, double> object_property_values;
         GetObjectPropertyValues(context, condition_matches, object_property_values);
 
-        return ReduceData(object_property_values);
+        return impl::ReduceData(this, object_property_values);
     }
 
     template <>
@@ -875,7 +1066,7 @@ namespace ValueRef {
         std::map<TemporaryPtr<const UniverseObject>, int> object_property_values;
         GetObjectPropertyValues(context, condition_matches, object_property_values);
 
-        return ReduceData(object_property_values);
+        return impl::ReduceData(this, object_property_values);
     }
 
     template <>
@@ -1421,7 +1612,7 @@ namespace ValueRef {
             retval += m_operand2->Description();
 
         return retval;
-    }
+        }
 
     template <>
     std::string Operation<std::string>::Eval(const ScriptingContext& context) const

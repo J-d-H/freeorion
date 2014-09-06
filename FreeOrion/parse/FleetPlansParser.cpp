@@ -1,5 +1,4 @@
 #include "Label.h"
-#include "Parse.h"
 #include "ParseImpl.h"
 
 #include "../universe/Universe.h"
@@ -77,6 +76,10 @@ namespace {
 }
 
 namespace parse {
-    bool fleet_plans(const boost::filesystem::path& path, std::vector<FleetPlan*>& fleet_plans_)
-    { return detail::parse_file<rules, std::vector<FleetPlan*> >(path, fleet_plans_); }
+    namespace lib {
+        bool fleet_plans(const boost::filesystem::path& path, std::vector<FleetPlan*>& fleet_plans_)
+        {
+            return detail::parse_file<rules, std::vector<FleetPlan*> >(path, fleet_plans_);
+        }
+    }
 }

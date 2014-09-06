@@ -3,7 +3,6 @@
 #include "EnumParser.h"
 #include "Int.h"
 #include "Label.h"
-#include "Parse.h"
 #include "ParseImpl.h"
 #include "ValueRefParser.h"
 
@@ -153,6 +152,10 @@ namespace {
 }
 
 namespace parse {
-    bool buildings(const boost::filesystem::path& path, std::map<std::string, BuildingType*>& building_types)
-    { return detail::parse_file<rules, std::map<std::string, BuildingType*> >(path, building_types); }
+    namespace lib {
+        bool buildings(const boost::filesystem::path& path, std::map<std::string, BuildingType*>& building_types)
+        {
+            return detail::parse_file<rules, std::map<std::string, BuildingType*> >(path, building_types);
+        }
+    }
 }

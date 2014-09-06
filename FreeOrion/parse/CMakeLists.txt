@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.6)
 cmake_policy(VERSION 2.6.4)
 
-add_definitions(-DNDEBUG -DFREEORION_BUILD_PARSE)
+add_definitions(-DNDEBUG -DFREEORION_BUILD_COMMON)
 
 if (NOT BUILD_TESTS)
     if (CMAKE_COMPILER_IS_GNUCXX)

@@ -4,7 +4,6 @@
 #include "ConditionParserImpl.h"
 #include "EnumParser.h"
 #include "Label.h"
-#include "Parse.h"
 #include "ParseImpl.h"
 #include "ShipPartStatsParser.h"
 #include "ValueRefParser.h"
@@ -207,6 +206,10 @@ namespace {
 }
 
 namespace parse {
-    bool ship_parts(const boost::filesystem::path& path, std::map<std::string, PartType*>& parts)
-    { return detail::parse_file<rules, std::map<std::string, PartType*> >(path, parts); }
+    namespace lib {
+        bool ship_parts(const boost::filesystem::path& path, std::map<std::string, PartType*>& parts)
+        {
+            return detail::parse_file<rules, std::map<std::string, PartType*> >(path, parts);
+        }
+    }
 }

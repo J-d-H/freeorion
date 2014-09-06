@@ -1,7 +1,6 @@
 #include "ConditionParserImpl.h"
 #include "EnumParser.h"
 #include "Label.h"
-#include "Parse.h"
 #include "ParseImpl.h"
 #include "../universe/Species.h"
 
@@ -239,6 +238,10 @@ namespace {
 }
 
 namespace parse {
-    bool species(const boost::filesystem::path& path, std::map<std::string, Species*>& species_)
-    { return detail::parse_file<rules, std::map<std::string, Species*> >(path, species_); }
+    namespace lib {
+        bool species(const boost::filesystem::path& path, std::map<std::string, Species*>& species_)
+        {
+            return detail::parse_file<rules, std::map<std::string, Species*> >(path, species_);
+        }
+    }
 }

@@ -22,10 +22,10 @@
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>Unicode</CharacterSet>
+    <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -77,7 +77,7 @@
       <Optimization>Full</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;FREEORION_WIN32;_DLL;BOOST_ALL_DYN_LINK;_CRT_SECURE_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;LOG4CPP_STLPORT_AND_BOOST_BUILD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>FREEORION_BUILD_COMMON;WIN32;NDEBUG;_WINDOWS;_WIN32_WINNT=0x0501;_USRDLL;FREEORION_WIN32;_DLL;BOOST_ALL_DYN_LINK;_CRT_SECURE_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;LOG4CPP_STLPORT_AND_BOOST_BUILD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>../../log4cpp/;../../../include/;../../../include/zlib/;../../../Boost/include/boost_1_51/;../../GG/;../../OpenSteer/include/;../../</AdditionalIncludeDirectories>
       <CompileAsManaged>false</CompileAsManaged>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -96,6 +96,10 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <LinkErrorReporting>NoErrorReport</LinkErrorReporting>
+      <AdditionalLibraryDirectories>../../../lib/;../../../Boost/lib/;../../</AdditionalLibraryDirectories>
+      <IgnoreSpecificDefaultLibraries>
+      </IgnoreSpecificDefaultLibraries>
+      <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
     </Link>
     <CustomBuildStep>
       <Command>
@@ -107,6 +111,10 @@
       <Inputs>
       </Inputs>
     </CustomBuildStep>
+    <PreBuildEvent>
+      <Command>
+      </Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <None Include="..\..\cmake\make_ogre_plugins.py">
@@ -153,6 +161,7 @@
     <ClInclude Include="..\..\network\Message.h" />
     <ClInclude Include="..\..\network\MessageQueue.h" />
     <ClInclude Include="..\..\network\Networking.h" />
+    <ClInclude Include="..\..\parse\Parse.h" />
     <ClInclude Include="..\..\universe\Building.h" />
     <ClInclude Include="..\..\universe\CombatData.h" />
     <ClInclude Include="..\..\universe\Condition.h" />
@@ -224,7 +233,9 @@
     <ClCompile Include="..\..\OpenSteer\src\SimpleVehicle.cpp" />
     <ClCompile Include="..\..\OpenSteer\src\Vec3.cpp" />
     <ClCompile Include="..\..\OpenSteer\src\Vec3Utilities.cpp" />
+    <ClCompile Include="..\..\parse\Parse.cpp" />
     <ClCompile Include="..\..\util\EnumText.cpp" />
+    <ClCompile Include="..\..\util\Process.cpp" />
     <ClCompile Include="..\..\util\SaveGamePreviewUtils.cpp" />
     <ClCompile Include="..\..\util\ScopedTimer.cpp" />
     <ClCompile Include="..\..\util\StringTable.cpp" />
@@ -273,6 +284,14 @@
     <ClCompile Include="..\..\util\XMLDoc.cpp" />
     <ClCompile Include="..\..\util\VarText.cpp" />
     <ClCompile Include="..\..\util\Version.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\log4cpp\log4cpp.vcxproj">
+      <Project>{dff7d1e4-1a95-407a-b84c-ab57a20a9485}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\Parsers\Parsers.vcxproj">
+      <Project>{9925f25c-a72e-42ae-b2e3-6657255bf293}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

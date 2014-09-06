@@ -54,7 +54,7 @@ namespace ValueRef {
         MAXIMUM,
         RANDOM_UNIFORM
     };
-    template <class T> bool ConstantExpr(const ValueRefBase<T>* expr);
+    template <class T> inline bool ConstantExpr(const ValueRefBase<T>* expr);
 }
 
 #endif // _ValueRefFwd_h_

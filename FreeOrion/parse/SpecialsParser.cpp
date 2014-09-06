@@ -2,7 +2,6 @@
 #include "Double.h"
 #include "Int.h"
 #include "Label.h"
-#include "Parse.h"
 #include "ParseImpl.h"
 #include "../universe/Special.h"
 
@@ -145,6 +144,10 @@ namespace {
 }
 
 namespace parse {
-    bool specials(const boost::filesystem::path& path, std::map<std::string, Special*>& specials_)
-    { return detail::parse_file<rules, std::map<std::string, Special*> >(path, specials_); }
+    namespace lib{
+        bool specials(const boost::filesystem::path& path, std::map<std::string, Special*>& specials_)
+        {
+            return detail::parse_file<rules, std::map<std::string, Special*> >(path, specials_);
+        }
+    }
 }

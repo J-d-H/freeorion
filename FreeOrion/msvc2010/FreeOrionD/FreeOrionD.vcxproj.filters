@@ -244,9 +244,6 @@
     <ClCompile Include="..\..\server\dmain.cpp">
       <Filter>Source Files\server</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\util\Process.cpp">
-      <Filter>Source Files\util</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\combat\CombatSystem.cpp">
       <Filter>Source Files\combat</Filter>
     </ClCompile>

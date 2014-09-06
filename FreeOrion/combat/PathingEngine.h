@@ -32,6 +32,12 @@ public:
     PathingEngine();
     ~PathingEngine();
 
+private:
+    PathingEngine(const PathingEngine&); // Disable copy constructor
+    void operator=(const PathingEngine&); // Disable assignment operator
+
+public:
+
     const ProximityDB& GetProximityDB() const;
     const ObstacleVec& Obstacles() const;
 

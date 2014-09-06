@@ -1,6 +1,5 @@
 #include "ValueRefParser.h"
 #include "Label.h"
-#include "Parse.h"
 #include "ParseImpl.h"
 
 #include <boost/spirit/home/phoenix.hpp>
@@ -69,10 +68,12 @@ namespace {
 }
 
 namespace parse {
-    bool statistics(const boost::filesystem::path& path,
-                    std::map<std::string, const ValueRef::ValueRefBase<double>*>& stats_)
-    {
-        return detail::parse_file<rules, std::map<std::string, const ValueRef::ValueRefBase<double>*> >(
-            path, stats_);
+    namespace lib {
+        bool statistics(const boost::filesystem::path& path,
+            std::map<std::string, const ValueRef::ValueRefBase<double>*>& stats_)
+        {
+            return detail::parse_file<rules, std::map<std::string, const ValueRef::ValueRefBase<double>*> >(
+                path, stats_);
+        }
     }
 }

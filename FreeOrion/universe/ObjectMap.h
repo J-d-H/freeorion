@@ -442,23 +442,23 @@ private:
 };
 
 template <class T>
-ObjectMap::iterator<T> ObjectMap::begin()
+inline ObjectMap::iterator<T> ObjectMap::begin()
 { return iterator<T>(Map<typename boost::remove_const<T>::type>().begin(), *this); }
 
 template <class T>
-ObjectMap::iterator<T> ObjectMap::end()
+inline ObjectMap::iterator<T> ObjectMap::end()
 { return iterator<T>(Map<typename boost::remove_const<T>::type>().end(), *this); }
 
 template <class T>
-ObjectMap::const_iterator<T> ObjectMap::const_begin() const
+inline ObjectMap::const_iterator<T> ObjectMap::const_begin() const
 { return const_iterator<T>(Map<typename boost::remove_const<T>::type>().begin(), *this); }
 
 template <class T>
-ObjectMap::const_iterator<T> ObjectMap::const_end() const
+inline ObjectMap::const_iterator<T> ObjectMap::const_end() const
 { return const_iterator<T>(Map<typename boost::remove_const<T>::type>().end(), *this); }
 
 template <class T>
-TemporaryPtr<const T> ObjectMap::Object(int id) const {
+inline TemporaryPtr<const T> ObjectMap::Object(int id) const {
     typename std::map<int, boost::shared_ptr<typename boost::remove_const<T>::type> >::const_iterator it =
         Map<typename boost::remove_const<T>::type>().find(id);
     return TemporaryPtr<const T>(
@@ -479,7 +479,7 @@ TemporaryPtr<T> ObjectMap::Object(int id) {
 }
 
 template <class T>
-std::vector<TemporaryPtr<const T> > ObjectMap::FindObjects() const {
+inline std::vector<TemporaryPtr<const T> > ObjectMap::FindObjects() const {
     std::vector<TemporaryPtr<const T> > result;
     for (const_iterator<T> it = const_begin<T>(); it != const_end<T>(); ++it)
         result.push_back(*it);
@@ -487,7 +487,7 @@ std::vector<TemporaryPtr<const T> > ObjectMap::FindObjects() const {
 }
 
 template <class T>
-std::vector<TemporaryPtr<T> > ObjectMap::FindObjects() {
+inline std::vector<TemporaryPtr<T> > ObjectMap::FindObjects() {
     std::vector<TemporaryPtr<T> > result;
     for (iterator<T> it = begin<T>(); it != end<T>(); ++it)
         result.push_back(*it);
@@ -495,7 +495,7 @@ std::vector<TemporaryPtr<T> > ObjectMap::FindObjects() {
 }
 
 template <class T>
-std::vector<int> ObjectMap::FindObjectIDs() const {
+inline std::vector<int> ObjectMap::FindObjectIDs() const {
     std::vector<int> result;
     for (typename std::map<int, boost::shared_ptr<T> >::const_iterator
          it = Map<typename boost::remove_const<T>::type>().begin();
@@ -505,7 +505,7 @@ std::vector<int> ObjectMap::FindObjectIDs() const {
 }
 
 template <class T>
-std::vector<TemporaryPtr<const T> > ObjectMap::FindObjects(const std::vector<int>& object_ids) const {
+inline std::vector<TemporaryPtr<const T> > ObjectMap::FindObjects(const std::vector<int>& object_ids) const {
     std::vector<TemporaryPtr<const T> > retval;
     typedef typename boost::remove_const<T>::type mutableT;
     for (std::vector<int>::const_iterator it = object_ids.begin(); it != object_ids.end(); ++it) {
@@ -517,7 +517,7 @@ std::vector<TemporaryPtr<const T> > ObjectMap::FindObjects(const std::vector<int
 }
 
 template <class T>
-std::vector<TemporaryPtr<const T> > ObjectMap::FindObjects(const std::set<int>& object_ids) const {
+inline std::vector<TemporaryPtr<const T> > ObjectMap::FindObjects(const std::set<int>& object_ids) const {
     std::vector<TemporaryPtr<const T> > retval;
     typedef typename boost::remove_const<T>::type mutableT;
     for (std::set<int>::const_iterator it = object_ids.begin(); it != object_ids.end(); ++it) {
@@ -529,7 +529,7 @@ std::vector<TemporaryPtr<const T> > ObjectMap::FindObjects(const std::set<int>& 
 }
 
 template <class T>
-std::vector<TemporaryPtr<T> > ObjectMap::FindObjects(const std::vector<int>& object_ids) {
+inline std::vector<TemporaryPtr<T> > ObjectMap::FindObjects(const std::vector<int>& object_ids) {
     std::vector<TemporaryPtr<T> > retval;
     typedef typename boost::remove_const<T>::type mutableT;
     for (std::vector<int>::const_iterator it = object_ids.begin(); it != object_ids.end(); ++it) {
@@ -541,7 +541,7 @@ std::vector<TemporaryPtr<T> > ObjectMap::FindObjects(const std::vector<int>& obj
 }
 
 template <class T>
-std::vector<TemporaryPtr<T> > ObjectMap::FindObjects(const std::set<int>& object_ids) {
+inline std::vector<TemporaryPtr<T> > ObjectMap::FindObjects(const std::set<int>& object_ids) {
     std::vector<TemporaryPtr<T> > retval;
     typedef typename boost::remove_const<T>::type mutableT;
     for (std::set<int>::const_iterator it = object_ids.begin(); it != object_ids.end(); ++it) {
@@ -553,11 +553,11 @@ std::vector<TemporaryPtr<T> > ObjectMap::FindObjects(const std::set<int>& object
 }
 
 template <class T>
-int ObjectMap::NumObjects() const
+inline int ObjectMap::NumObjects() const
 { return Map<typename boost::remove_const<T>::type>().size(); }
 
 template <class T>
-TemporaryPtr<T> ObjectMap::Insert(T* item, int empire_id /* = ALL_EMPIRES */) {
+inline TemporaryPtr<T> ObjectMap::Insert(T* item, int empire_id /* = ALL_EMPIRES */) {
     if (!item)
         return TemporaryPtr<T>();
 
@@ -567,7 +567,7 @@ TemporaryPtr<T> ObjectMap::Insert(T* item, int empire_id /* = ALL_EMPIRES */) {
 }
 
 template <class T>
-void ObjectMap::Insert(TemporaryPtr<T> item, int empire_id /* = ALL_EMPIRES */) {
+inline void ObjectMap::Insert(TemporaryPtr<T> item, int empire_id /* = ALL_EMPIRES */) {
     if (!item)
         return;
     Insert(boost::dynamic_pointer_cast<UniverseObject>(item.m_ptr), empire_id);
@@ -576,57 +576,57 @@ void ObjectMap::Insert(TemporaryPtr<T> item, int empire_id /* = ALL_EMPIRES */) 
 // template specializations
 
 template <>
-const std::map<int, boost::shared_ptr<UniverseObject> >&  ObjectMap::Map() const;
+FO_COMMON_API const std::map<int, boost::shared_ptr<UniverseObject> >&  ObjectMap::Map() const;
 
 template <>
-const std::map<int, boost::shared_ptr<ResourceCenter> >&  ObjectMap::Map() const;
+FO_COMMON_API const std::map<int, boost::shared_ptr<ResourceCenter> >&  ObjectMap::Map() const;
 
 template <>
-const std::map<int, boost::shared_ptr<PopCenter> >&  ObjectMap::Map() const;
+FO_COMMON_API const std::map<int, boost::shared_ptr<PopCenter> >&  ObjectMap::Map() const;
 
 template <>
-const std::map<int, boost::shared_ptr<Ship> >&  ObjectMap::Map() const;
+FO_COMMON_API const std::map<int, boost::shared_ptr<Ship> >&  ObjectMap::Map() const;
 
 template <>
-const std::map<int, boost::shared_ptr<Fleet> >&  ObjectMap::Map() const;
+FO_COMMON_API const std::map<int, boost::shared_ptr<Fleet> >&  ObjectMap::Map() const;
 
 template <>
-const std::map<int, boost::shared_ptr<Planet> >&  ObjectMap::Map() const;
+FO_COMMON_API const std::map<int, boost::shared_ptr<Planet> >&  ObjectMap::Map() const;
 
 template <>
-const std::map<int, boost::shared_ptr<System> >&  ObjectMap::Map() const;
+FO_COMMON_API const std::map<int, boost::shared_ptr<System> >&  ObjectMap::Map() const;
 
 template <>
-const std::map<int, boost::shared_ptr<Building> >&  ObjectMap::Map() const;
+FO_COMMON_API const std::map<int, boost::shared_ptr<Building> >&  ObjectMap::Map() const;
 
 template <>
-const std::map<int, boost::shared_ptr<Field> >&  ObjectMap::Map() const;
+FO_COMMON_API const std::map<int, boost::shared_ptr<Field> >&  ObjectMap::Map() const;
 
 template <>
-std::map<int, boost::shared_ptr<UniverseObject> >&  ObjectMap::Map();
+FO_COMMON_API std::map<int, boost::shared_ptr<UniverseObject> >&  ObjectMap::Map();
 
 template <>
-std::map<int, boost::shared_ptr<ResourceCenter> >&  ObjectMap::Map();
+FO_COMMON_API std::map<int, boost::shared_ptr<ResourceCenter> >&  ObjectMap::Map();
 
 template <>
-std::map<int, boost::shared_ptr<PopCenter> >&  ObjectMap::Map();
+FO_COMMON_API std::map<int, boost::shared_ptr<PopCenter> >&  ObjectMap::Map();
 
 template <>
-std::map<int, boost::shared_ptr<Ship> >&  ObjectMap::Map();
+FO_COMMON_API std::map<int, boost::shared_ptr<Ship> >&  ObjectMap::Map();
 
 template <>
-std::map<int, boost::shared_ptr<Fleet> >&  ObjectMap::Map();
+FO_COMMON_API std::map<int, boost::shared_ptr<Fleet> >&  ObjectMap::Map();
 
 template <>
-std::map<int, boost::shared_ptr<Planet> >&  ObjectMap::Map();
+FO_COMMON_API std::map<int, boost::shared_ptr<Planet> >&  ObjectMap::Map();
 
 template <>
-std::map<int, boost::shared_ptr<System> >&  ObjectMap::Map();
+FO_COMMON_API std::map<int, boost::shared_ptr<System> >&  ObjectMap::Map();
 
 template <>
-std::map<int, boost::shared_ptr<Building> >&  ObjectMap::Map();
+FO_COMMON_API std::map<int, boost::shared_ptr<Building> >&  ObjectMap::Map();
 
 template <>
-std::map<int, boost::shared_ptr<Field> >&  ObjectMap::Map();
+FO_COMMON_API std::map<int, boost::shared_ptr<Field> >&  ObjectMap::Map();
 
 #endif

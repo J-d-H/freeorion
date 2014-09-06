@@ -2,7 +2,6 @@
 #include "EnumParser.h"
 #include "ValueRefParser.h"
 #include "ParseImpl.h"
-#include "Parse.h"
 #include "../universe/Species.h"
 
 #include <boost/spirit/home/phoenix.hpp>
@@ -249,13 +248,15 @@ namespace {
 }
 
 namespace parse {
-    bool techs(const boost::filesystem::path& path,
-               TechManager::TechContainer& techs_,
-               std::map<std::string, TechCategory*>& categories,
-               std::set<std::string>& categories_seen)
-    {
-        g_categories_seen = &categories_seen;
-        g_categories = &categories;
-        return detail::parse_file<rules, TechManager::TechContainer>(path, techs_);
+    namespace lib {
+        bool techs(const boost::filesystem::path& path,
+            TechManager::TechContainer& techs_,
+            std::map<std::string, TechCategory*>& categories,
+            std::set<std::string>& categories_seen)
+        {
+            g_categories_seen = &categories_seen;
+            g_categories = &categories;
+            return detail::parse_file<rules, TechManager::TechContainer>(path, techs_);
+        }
     }
 }

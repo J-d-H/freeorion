@@ -25,7 +25,7 @@
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>Unicode</CharacterSet>
+    <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -74,7 +74,7 @@
       <DisableSpecificWarnings>4099;4251;4800;4267;4275;4244;4101;4258;4996;4312;4311;4091;4351</DisableSpecificWarnings>
       <CompileAsManaged>false</CompileAsManaged>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <WholeProgramOptimization>true</WholeProgramOptimization>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
@@ -85,10 +85,10 @@
       <OptimizeReferences>true</OptimizeReferences>
       <OutputFile>../../FreeOrionD.exe</OutputFile>
       <AdditionalLibraryDirectories>../../../lib/;../../../Boost/lib/;../../</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Common.lib;Parsers.lib;log4cpp.lib;zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <LinkErrorReporting>NoErrorReport</LinkErrorReporting>
-      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+      <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -163,7 +163,14 @@
     <ClCompile Include="..\..\server\ServerFSM.cpp" />
     <ClCompile Include="..\..\universe\PythonUniverseGenerator.cpp" />
     <ClCompile Include="..\..\universe\UniverseGenerator.cpp" />
-    <ClCompile Include="..\..\util\Process.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Common\Common.vcxproj">
+      <Project>{bedf460a-eae9-4e20-afb2-2c8434051150}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\log4cpp\log4cpp.vcxproj">
+      <Project>{dff7d1e4-1a95-407a-b84c-ab57a20a9485}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -25,7 +25,7 @@
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>Unicode</CharacterSet>
+    <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -84,14 +84,14 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalLibraryDirectories>../../../lib/;../../../lib/bullet/;../../../Boost/lib/;../../</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Common.lib;Parsers.lib;log4cpp.lib;GiGi.lib;GiGiOgre.lib;OgreMain.lib;GiGiOgrePlugin_OIS.lib;opengl32.lib;glu32.lib;libpng.lib;jpeg.lib;BulletCollision.lib;LinearMath.lib;glew32.lib;OpenAL32.lib;zlib.lib;libvorbisfile.lib;Psapi.lib;User32.lib</AdditionalDependencies>
+      <AdditionalDependencies>OgreMain.lib;opengl32.lib;glu32.lib;libpng.lib;jpeg.lib;BulletCollision.lib;LinearMath.lib;glew32.lib;OpenAL32.lib;zlib.lib;libvorbisfile.lib;Psapi.lib;User32.lib</AdditionalDependencies>
       <OutputFile>../../FreeOrion.exe</OutputFile>
       <LinkStatus>
       </LinkStatus>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <LinkErrorReporting>NoErrorReport</LinkErrorReporting>
       <IgnoreSpecificDefaultLibraries>LIBCMT; LIBCPMT</IgnoreSpecificDefaultLibraries>
-      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+      <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -272,12 +272,28 @@
     <ClCompile Include="..\..\UI\SystemIcon.cpp" />
     <ClCompile Include="..\..\UI\TechTreeLayout.cpp" />
     <ClCompile Include="..\..\UI\TechTreeWnd.cpp" />
-    <ClCompile Include="..\..\util\Process.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="FreeOrion.rc">
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">IDI_ICON1=101</PreprocessorDefinitions>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Common\Common.vcxproj">
+      <Project>{bedf460a-eae9-4e20-afb2-2c8434051150}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\GiGiOgrePlugin_OIS\GiGiOgrePlugin_OIS.vcxproj">
+      <Project>{a88b8c11-8415-4e28-b90d-4a45b4fc513e}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\GiGiOgre\GiGiOgre.vcxproj">
+      <Project>{a79a0d95-b9c4-42a5-9d4a-b55240eb295a}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\GiGi\GiGi.vcxproj">
+      <Project>{2cec3ab3-36a0-4037-aec2-da0435a4dadb}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\log4cpp\log4cpp.vcxproj">
+      <Project>{dff7d1e4-1a95-407a-b84c-ab57a20a9485}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

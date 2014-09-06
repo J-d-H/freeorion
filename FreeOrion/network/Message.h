@@ -164,7 +164,7 @@ private:
 
     boost::shared_array<char> m_message_text;
 
-    friend void BufferToHeader(const int* header_buf, Message& message);
+    friend FO_COMMON_API void BufferToHeader(const int* header_buf, Message& message);
 };
 
 bool operator==(const Message& lhs, const Message& rhs);

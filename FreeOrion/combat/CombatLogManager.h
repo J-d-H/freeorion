@@ -86,5 +86,9 @@ void CombatLogManager::serialize(Archive& ar, const unsigned int version)
     }
 }
 
+#include "../util/Serialize.h"
+
+template FO_COMMON_API void CombatLog::serialize<freeorion_oarchive>(freeorion_oarchive&, const unsigned int);
+template FO_COMMON_API void CombatLog::serialize<freeorion_iarchive>(freeorion_iarchive&, const unsigned int);
 
 #endif // _CombatLogManager_h_

@@ -28,6 +28,7 @@
 #include "../util/SaveGamePreviewUtils.h"
 #include "../util/SitRepEntry.h"
 #include "../util/ScopedTimer.h"
+#include "../util//Random.h"
 
 #include <GG/SignalsAndSlots.h>
 
@@ -43,7 +44,6 @@
 
 namespace fs = boost::filesystem;
 
-void Seed(unsigned int seed);
 
 namespace {
     //If there's only one other empire, return their ID:

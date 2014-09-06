@@ -279,4 +279,15 @@ struct CombatSetupGroup {
 
 // Note: *::serialize() implemented in SerializeMultiplayerCommon.cpp.
 
+#include "Serialize.h"
+
+template FO_COMMON_API void GalaxySetupData::serialize<freeorion_oarchive>(freeorion_oarchive&, const unsigned int);
+template FO_COMMON_API void GalaxySetupData::serialize<freeorion_iarchive>(freeorion_iarchive&, const unsigned int);
+
+template FO_COMMON_API void SaveGameEmpireData::serialize<freeorion_oarchive>(freeorion_oarchive&, const unsigned int);
+template FO_COMMON_API void SaveGameEmpireData::serialize<freeorion_iarchive>(freeorion_iarchive&, const unsigned int);
+
+template FO_COMMON_API void SaveGameUIData::serialize<freeorion_oarchive>(freeorion_oarchive&, const unsigned int);
+template FO_COMMON_API void SaveGameUIData::serialize<freeorion_iarchive>(freeorion_iarchive&, const unsigned int);
+
 #endif // _MultiplayerCommon_h_

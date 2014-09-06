@@ -2,7 +2,6 @@
 #include "Double.h"
 #include "Int.h"
 #include "Label.h"
-#include "Parse.h"
 #include "ParseImpl.h"
 
 #include "../universe/Universe.h"
@@ -132,6 +131,10 @@ namespace {
 }
 
 namespace parse {
-    bool monster_fleet_plans(const boost::filesystem::path& path, std::vector<MonsterFleetPlan*>& monster_fleet_plans_)
-    { return detail::parse_file<rules, std::vector<MonsterFleetPlan*> >(path, monster_fleet_plans_); }
+    namespace lib {
+        bool monster_fleet_plans(const boost::filesystem::path& path, std::vector<MonsterFleetPlan*>& monster_fleet_plans_)
+        {
+            return detail::parse_file<rules, std::vector<MonsterFleetPlan*> >(path, monster_fleet_plans_);
+        }
+    }
 }

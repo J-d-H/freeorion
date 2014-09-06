@@ -4,7 +4,6 @@
 #include "EnumParser.h"
 #include "Int.h"
 #include "Label.h"
-#include "Parse.h"
 #include "ParseImpl.h"
 #include "ValueRefParser.h"
 
@@ -201,7 +200,7 @@ namespace {
 }
 
 namespace parse {
-    void init() {
+    void lib::init() {
         const lexer& tok = lexer::instance();
         qi::_1_type _1;
         qi::_val_type _val;

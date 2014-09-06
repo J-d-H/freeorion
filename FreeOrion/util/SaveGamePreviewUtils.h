@@ -93,4 +93,10 @@ FO_COMMON_API void LoadSaveGamePreviews ( const boost::filesystem::path& path, c
 
 /// If path is inside directory, returns true
 FO_COMMON_API bool IsInside(const boost::filesystem::path& path, const boost::filesystem::path& directory);
+
+#include "Serialize.h"
+
+template FO_COMMON_API void SaveGamePreviewData::serialize<freeorion_oarchive>(freeorion_oarchive&, const unsigned int);
+template FO_COMMON_API void SaveGamePreviewData::serialize<freeorion_iarchive>(freeorion_iarchive&, const unsigned int);
+
 #endif // SAVEGAMEPREVIEW_H

@@ -117,4 +117,9 @@ private:
 /** The colors that are available for use for empires in the game. */
 FO_COMMON_API const std::vector<GG::Clr>& EmpireColors();
 
+#include "../util/Serialize.h"
+
+template FO_COMMON_API void EmpireManager::serialize<freeorion_oarchive>(freeorion_oarchive&, const unsigned int);
+template FO_COMMON_API void EmpireManager::serialize<freeorion_iarchive>(freeorion_iarchive&, const unsigned int);
+
 #endif // _EmpireManager_h_

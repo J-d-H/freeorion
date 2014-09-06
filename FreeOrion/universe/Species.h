@@ -171,9 +171,9 @@ private:
 /** Holds all FreeOrion species.  Types may be looked up by name. */
 class FO_COMMON_API SpeciesManager {
 private:
-    struct PlayableSpecies
+    struct FO_COMMON_API PlayableSpecies
     { bool operator()(const std::map<std::string, Species*>::value_type& species_map_iterator) const; };
-    struct NativeSpecies
+    struct FO_COMMON_API NativeSpecies
     { bool operator()(const std::map<std::string, Species*>::value_type& species_map_iterator) const; };
 
 public:
@@ -271,5 +271,11 @@ FO_COMMON_API SpeciesManager& GetSpeciesManager();
 /** Returns the Species object used to represent species of type \a name.
   * If no such Species exists, 0 is returned instead. */
 FO_COMMON_API const Species* GetSpecies(const std::string& name);
+
+
+#include "../util/Serialize.h"
+
+template FO_COMMON_API void SpeciesManager::serialize<freeorion_oarchive>(freeorion_oarchive&, const unsigned int);
+template FO_COMMON_API void SpeciesManager::serialize<freeorion_iarchive>(freeorion_iarchive&, const unsigned int);
 
 #endif // _Species_h_

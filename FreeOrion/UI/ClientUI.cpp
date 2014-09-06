@@ -45,7 +45,7 @@
 #include <string>
 #include <algorithm>
 
-const Tech* GetTech(const std::string& name);
+FO_COMMON_API const Tech* GetTech(const std::string& name);
 
 bool TextureFileNameCompare(const boost::shared_ptr<GG::Texture> t1, const boost::shared_ptr<GG::Texture> t2)
 { return t1 && t2 && t1->Filename() < t2->Filename(); }

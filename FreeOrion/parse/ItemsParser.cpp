@@ -1,5 +1,4 @@
 #include "Label.h"
-#include "Parse.h"
 #include "ParseImpl.h"
 
 #include <boost/spirit/home/phoenix.hpp>
@@ -42,6 +41,10 @@ namespace {
 }
 
 namespace parse {
-    bool items(const boost::filesystem::path& path, std::vector<ItemSpec>& items_)
-    { return detail::parse_file<rules, std::vector<ItemSpec> >(path, items_); }
+    namespace lib {
+        bool items(const boost::filesystem::path& path, std::vector<ItemSpec>& items_)
+        {
+            return detail::parse_file<rules, std::vector<ItemSpec> >(path, items_);
+        }
+    }
 }

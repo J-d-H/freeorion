@@ -15,8 +15,35 @@
 
 class UniverseObject;
 
-const std::string& UserString(const std::string& str);
-boost::format FlexibleFormat(const std::string& string_to_format);
+FO_COMMON_API std::string DoubleToString(double val, int digits, bool always_show_sign);
+FO_COMMON_API const std::string& UserString(const std::string& str);
+FO_COMMON_API boost::format FlexibleFormat(const std::string& string_to_format);
+FO_COMMON_API std::string FormatedDescriptionPropertyNames(ValueRef::ReferenceType ref_type
+                                                           , const std::vector<std::string>& property_names);
+
+namespace ValueRef {
+    FO_COMMON_API std::string ReconstructName(const std::vector<std::string>& property_name
+                                              , ValueRef::ReferenceType ref_type);
+
+    FO_COMMON_API MeterType     NameToMeter(std::string name);
+    FO_COMMON_API std::string   MeterToName(MeterType meter);
+
+    FO_COMMON_API std::string   ReconstructName(const std::vector<std::string>& property_name
+                                                , ReferenceType ref_type);
+
+    template <class T>
+    inline bool ConstantExpr(const ValueRefBase<T>* expr)
+    {
+        assert(expr);
+        if (dynamic_cast<const Constant<T>*>(expr))
+            return true;
+        else if (dynamic_cast<const Variable<T>*>(expr))
+            return false;
+        else if (const Operation<T>* op = dynamic_cast<const Operation<T>*>(expr))
+            return ConstantExpr(op->LHS()) && ConstantExpr(op->RHS());
+        return false;
+    }
+}
 
 struct ScriptingContext {
     /** Empty context.  Useful for evaluating ValueRef::Constant that don't
@@ -86,14 +113,27 @@ struct ScriptingContext {
     const boost::any                    current_value;
 };
 
+
+
+///////////////////////////////////////////////////////////
+// ValueRefBase                                          //
+///////////////////////////////////////////////////////////
+
 /** The base class for all ValueRef classes.  This class provides the public
   * interface for a ValueRef expression tree. */
 template <class T>
-struct ValueRef::ValueRefBase
+struct FO_COMMON_API ValueRef::ValueRefBase
 {
     virtual ~ValueRefBase() {} ///< virtual dtor
 
-    virtual bool        operator==(const ValueRef::ValueRefBase<T>& rhs) const;
+    virtual bool        operator==(const ValueRef::ValueRefBase<T>& rhs) const
+    {
+        if (&rhs == this)
+            return true;
+        if (typeid(rhs) != typeid(*this))
+            return false;
+        return true;
+    }
     bool                operator!=(const ValueRef::ValueRefBase<T>& rhs) const { return !(*this == rhs); }
 
     /** Evaluates the expression tree and return the results; \a context
@@ -117,24 +157,48 @@ struct ValueRef::ValueRefBase
 private:
     friend class boost::serialization::access;
     template <class Archive>
-    void serialize(Archive& ar, const unsigned int version);
+    void serialize(Archive& ar, const unsigned int version) {}
 };
+
+template struct FO_COMMON_API ValueRef::ValueRefBase<int>;
+template struct FO_COMMON_API ValueRef::ValueRefBase<double>;
+template struct FO_COMMON_API ValueRef::ValueRefBase<std::string>;
+template struct FO_COMMON_API ValueRef::ValueRefBase<PlanetSize>;
+template struct FO_COMMON_API ValueRef::ValueRefBase<PlanetType>;
+template struct FO_COMMON_API ValueRef::ValueRefBase<PlanetEnvironment>;
+template struct FO_COMMON_API ValueRef::ValueRefBase<UniverseObjectType>;
+template struct FO_COMMON_API ValueRef::ValueRefBase<StarType>;
+
+
+
+///////////////////////////////////////////////////////////
+// Constant                                              //
+///////////////////////////////////////////////////////////
 
 /** the constant value leaf ValueRef class. */
 template <class T>
 struct FO_COMMON_API ValueRef::Constant : public ValueRef::ValueRefBase<T>
 {
-    Constant(T value); ///< basic ctor
+    Constant(T value) : m_value(value) {} ///< basic ctor
 
-    virtual bool        operator==(const ValueRef::ValueRefBase<T>& rhs) const;
-    T                   Value() const;
-    virtual T           Eval(const ScriptingContext& context) const;
+    virtual bool        operator==(const ValueRef::ValueRefBase<T>& rhs) const
+    {
+        if (&rhs == this)
+            return true;
+        if (typeid(rhs) != typeid(*this))
+            return false;
+        const ValueRef::Constant<T>& rhs_ = static_cast<const ValueRef::Constant<T>&>(rhs);
+
+        return m_value == rhs_.m_value;
+    }
+    T                   Value() const { return m_value; }
+    virtual T           Eval(const ScriptingContext& context) const { return m_value; };
     virtual bool        RootCandidateInvariant() const { return true; }
     virtual bool        LocalCandidateInvariant() const { return true; }
     virtual bool        TargetInvariant() const { return true; }
     virtual bool        SourceInvariant() const { return true; }
 
-    virtual std::string Description() const;
+    virtual std::string Description() const { return UserString(boost::lexical_cast<std::string>(m_value)); }
     virtual std::string Dump() const;
 
 private:
@@ -142,27 +206,110 @@ private:
 
     friend class boost::serialization::access;
     template <class Archive>
-    void serialize(Archive& ar, const unsigned int version);
+    void serialize(Archive& ar, const unsigned int version)
+    {
+        ar  & BOOST_SERIALIZATION_BASE_OBJECT_NVP(ValueRefBase)
+            & BOOST_SERIALIZATION_NVP(m_value);
+    }
 };
+
+namespace ValueRef {
+    template <>
+    inline std::string Constant<int>::Description() const;
+
+    template <>
+    inline std::string Constant<double>::Description() const;
+
+    template <>
+    inline std::string Constant<std::string>::Description() const;
+
+    template <>
+    inline std::string Constant<PlanetSize>::Dump() const;
+
+    template <>
+    inline std::string Constant<PlanetType>::Dump() const;
+
+    template <>
+    inline std::string Constant<PlanetEnvironment>::Dump() const;
+
+    template <>
+    inline std::string Constant<UniverseObjectType>::Dump() const;
+
+    template <>
+    inline std::string Constant<StarType>::Dump() const;
+
+    template <>
+    inline std::string Constant<int>::Dump() const;
+
+    template <>
+    inline std::string Constant<double>::Dump() const;
+
+    template <>
+    inline std::string Constant<std::string>::Dump() const;
+}
+
+template struct FO_COMMON_API ValueRef::Constant<int>;
+template struct FO_COMMON_API ValueRef::Constant<double>;
+template struct FO_COMMON_API ValueRef::Constant<std::string>;
+template struct FO_COMMON_API ValueRef::Constant<PlanetSize>;
+template struct FO_COMMON_API ValueRef::Constant<PlanetType>;
+template struct FO_COMMON_API ValueRef::Constant<PlanetEnvironment>;
+template struct FO_COMMON_API ValueRef::Constant<UniverseObjectType>;
+template struct FO_COMMON_API ValueRef::Constant<StarType>;
+
+
+
+///////////////////////////////////////////////////////////
+// Variable                                              //
+///////////////////////////////////////////////////////////
 
 /** The variable value ValueRef class.  The value returned by this node is
   * taken from the gamestate, most often from the Source or Target objects. */
 template <class T>
 struct FO_COMMON_API ValueRef::Variable : public ValueRef::ValueRefBase<T>
 {
-    Variable(ReferenceType ref_type, const std::vector<std::string>& property_name);
-    Variable(ReferenceType ref_type, const std::string& property_name = "");
+    Variable(ReferenceType ref_type, const std::vector<std::string>& property_name)
+        : m_ref_type(ref_type)
+        , m_property_name(property_name.begin(), property_name.end())
+    { }
+    Variable(ReferenceType ref_type, const std::string& property_name = "")
+        : m_ref_type(ref_type)
+        , m_property_name() 
+    {
+        m_property_name.push_back(property_name);
+    }
 
-    virtual bool                    operator==(const ValueRef::ValueRefBase<T>& rhs) const;
-    ReferenceType                   GetReferenceType() const;
-    const std::vector<std::string>& PropertyName() const;
-    virtual T                       Eval(const ScriptingContext& context) const;
-    virtual bool                    RootCandidateInvariant() const;
-    virtual bool                    LocalCandidateInvariant() const;
-    virtual bool                    TargetInvariant() const;
-    virtual bool                    SourceInvariant() const;
-    virtual std::string             Description() const;
-    virtual std::string             Dump() const;
+    virtual bool                    operator==(const ValueRef::ValueRefBase<T>& rhs) const
+    {
+        if (&rhs == this)
+            return true;
+        if (typeid(rhs) != typeid(*this))
+            return false;
+        const ValueRef::Variable<T>& rhs_ = static_cast<const ValueRef::Variable<T>&>(rhs);
+        return (m_ref_type == rhs_.m_ref_type) && (m_property_name == rhs_.m_property_name);
+    }
+
+    ReferenceType                   GetReferenceType() const { return m_ref_type; }
+    const std::vector<std::string>& PropertyName() const { return m_property_name; }
+    virtual T                       Eval(const ScriptingContext& context) const; // only specialized definitions available
+    virtual bool                    RootCandidateInvariant() const {
+        return m_ref_type != CONDITION_ROOT_CANDIDATE_REFERENCE;
+    }
+    virtual bool                    LocalCandidateInvariant() const {
+        return m_ref_type != CONDITION_LOCAL_CANDIDATE_REFERENCE;
+    }
+    virtual bool                    TargetInvariant() const {
+        return m_ref_type != EFFECT_TARGET_REFERENCE && m_ref_type != EFFECT_TARGET_VALUE_REFERENCE;
+    }
+    virtual bool                    SourceInvariant() const {
+        return m_ref_type != SOURCE_REFERENCE;
+    }
+    virtual std::string             Description() const {
+        return FormatedDescriptionPropertyNames(m_ref_type, m_property_name);
+    }
+    virtual std::string             Dump() const {
+        return ReconstructName(m_property_name, m_ref_type);
+    }
 
 protected:
     mutable ReferenceType       m_ref_type;
@@ -171,8 +318,56 @@ protected:
 private:
     friend class boost::serialization::access;
     template <class Archive>
-    void serialize(Archive& ar, const unsigned int version);
+    void serialize(Archive& ar, const unsigned int version) {
+        ar  & BOOST_SERIALIZATION_BASE_OBJECT_NVP(ValueRefBase)
+            & BOOST_SERIALIZATION_NVP(m_ref_type)
+            & BOOST_SERIALIZATION_NVP(m_property_name);
+    }
 };
+
+namespace ValueRef {
+    template <>
+    inline PlanetSize Variable<PlanetSize>::Eval(const ScriptingContext& context) const;
+
+    template <>
+    inline PlanetType Variable<PlanetType>::Eval(const ScriptingContext& context) const;
+
+    template <>
+    inline PlanetEnvironment Variable<PlanetEnvironment>::Eval(const ScriptingContext& context) const;
+
+    template <>
+    inline UniverseObjectType Variable<UniverseObjectType>::Eval(const ScriptingContext& context) const;
+
+    template <>
+    inline StarType Variable<StarType>::Eval(const ScriptingContext& context) const;
+
+    template <>
+    inline double Variable<double>::Eval(const ScriptingContext& context) const;
+
+    template <>
+    inline int Variable<int>::Eval(const ScriptingContext& context) const;
+}
+
+template struct FO_COMMON_API ValueRef::Variable<int>;
+template struct FO_COMMON_API ValueRef::Variable<double>;
+template struct FO_COMMON_API ValueRef::Variable<PlanetSize>;
+template struct FO_COMMON_API ValueRef::Variable<PlanetType>;
+template struct FO_COMMON_API ValueRef::Variable<PlanetEnvironment>;
+template struct FO_COMMON_API ValueRef::Variable<UniverseObjectType>;
+template struct FO_COMMON_API ValueRef::Variable<StarType>;
+
+
+
+///////////////////////////////////////////////////////////
+// Statistic                                             //
+///////////////////////////////////////////////////////////
+
+namespace ValueRef {
+    namespace impl {
+        template<class T>
+        FO_COMMON_API T ReduceData(Statistic<T> const * const that, const std::map<TemporaryPtr<const UniverseObject>, T>& object_property_values);
+    }
+}
 
 /** The variable statistic class.   The value returned by this node is
   * computed from the general gamestate; the value of the indicated
@@ -184,46 +379,180 @@ struct FO_COMMON_API ValueRef::Statistic : public ValueRef::Variable<T>
 {
     Statistic(const std::vector<std::string>& property_name,
               StatisticType stat_type,
-              const Condition::ConditionBase* sampling_condition);
-    ~Statistic();
+              const Condition::ConditionBase* sampling_condition)
+        : Variable<T>(ValueRef::NON_OBJECT_REFERENCE, property_name)
+        , m_stat_type(stat_type)
+        , m_sampling_condition(sampling_condition)
+    { }
+    ~Statistic() {
+        delete m_sampling_condition;
+    }
 
-    virtual bool                    operator==(const ValueRef::ValueRefBase<T>& rhs) const;
+    virtual bool                    operator==(const ValueRef::ValueRefBase<T>& rhs) const
+    {
+        if (&rhs == this)
+            return true;
+        if (typeid(rhs) != typeid(*this))
+            return false;
+        const ValueRef::Statistic<T>& rhs_ = static_cast<const ValueRef::Statistic<T>&>(rhs);
+
+        if (m_stat_type != rhs_.m_stat_type)
+            return false;
+        if (this->m_property_name != rhs_.m_property_name)
+            return false;
+
+        if (m_sampling_condition == rhs_.m_sampling_condition) {
+            // check next member
+        }
+        else if (!m_sampling_condition || !rhs_.m_sampling_condition) {
+            return false;
+        }
+        else {
+            if (*m_sampling_condition != *(rhs_.m_sampling_condition))
+                return false;
+        }
+
+        return true;
+    }
 
     StatisticType                   GetStatisticType() const     { return m_stat_type; }
     const Condition::ConditionBase* GetSamplingCondition() const { return m_sampling_condition; }
 
-    virtual T                       Eval(const ScriptingContext& context) const;
+    virtual T                       Eval(const ScriptingContext& context) const
+    {
+        // the only statistic that can be computed on non-number property types
+        // and that is itself of a non-number type is the most common value
+        if (m_stat_type != MODE)
+            throw std::runtime_error("ValueRef evaluated with an invalid StatisticType for the return type.");
 
-    virtual bool                    RootCandidateInvariant() const;
-    virtual bool                    LocalCandidateInvariant() const;
-    virtual bool                    TargetInvariant() const;
-    virtual bool                    SourceInvariant() const;
+        Condition::ObjectSet condition_matches;
+        GetConditionMatches(context, condition_matches, m_sampling_condition);
 
-    virtual std::string             Description() const;
-    virtual std::string             Dump() const;
+        if (condition_matches.empty())
+            return T(-1);   // should be INVALID_T of enum types
+
+        // evaluate property for each condition-matched object
+        std::map<TemporaryPtr<const UniverseObject>, T> object_property_values;
+        GetObjectPropertyValues(context, condition_matches, object_property_values);
+
+        // count number of each result, tracking which has the most occurances
+        std::map<T, unsigned int> histogram;
+        typename std::map<T, unsigned int>::const_iterator most_common_property_value_it = histogram.begin();
+        unsigned int max_seen(0);
+
+        for (typename std::map<TemporaryPtr<const UniverseObject>, T>::const_iterator it = object_property_values.begin();
+            it != object_property_values.end(); ++it)
+        {
+            const T& property_value = it->second;
+
+            typename std::map<T, unsigned int>::iterator hist_it = histogram.find(property_value);
+            if (hist_it == histogram.end())
+                hist_it = histogram.insert(std::make_pair(property_value, 0)).first;
+            unsigned int& num_seen = hist_it->second;
+
+            num_seen++;
+
+            if (num_seen > max_seen) {
+                most_common_property_value_it = hist_it;
+                max_seen = num_seen;
+            }
+        }
+
+        // return result (property value) that occured most frequently
+        return most_common_property_value_it->first;
+    }
+
+    virtual bool                    RootCandidateInvariant() const {
+        return ValueRef::Variable<T>::RootCandidateInvariant() && m_sampling_condition->RootCandidateInvariant();
+    }
+    virtual bool                    LocalCandidateInvariant() const {
+        // don't need to check if sampling condition is LocalCandidateInvariant, as
+        // all conditions aren't, but that refers to their own local candidate.  no
+        // condition is explicitly dependent on the parent context's local candidate.
+        return ValueRef::Variable<T>::LocalCandidateInvariant();
+    }
+    virtual bool                    TargetInvariant() const {
+        return ValueRef::Variable<T>::TargetInvariant() && m_sampling_condition->TargetInvariant();
+    }
+    virtual bool                    SourceInvariant() const {
+        return ValueRef::Variable<T>::SourceInvariant() && m_sampling_condition->SourceInvariant();
+    }
+
+    virtual std::string             Description() const {
+        return UserString("DESC_STATISTIC");
+    }
+
+    virtual std::string             Dump() const {
+        return "Statistic";
+    }
 
 protected:
     /** Gets the set of objects in the Universe that match the sampling condition. */
     void    GetConditionMatches(const ScriptingContext& context,
                                 Condition::ObjectSet& condition_targets,
-                                const Condition::ConditionBase* condition) const;
+                                const Condition::ConditionBase* condition) const
+    {
+        condition_targets.clear();
+        if (!condition)
+            return;
+        condition->Eval(context, condition_targets);
+    }
 
     /** Evaluates the property for the specified objects. */
     void    GetObjectPropertyValues(const ScriptingContext& context,
                                     const Condition::ObjectSet& objects,
-                                    std::map<TemporaryPtr<const UniverseObject>, T>& object_property_values) const;
-
-    /** Computes the statistic from the specified set of property values. */
-    T       ReduceData(const std::map<TemporaryPtr<const UniverseObject>, T>& object_property_values) const;
+                                    std::map<TemporaryPtr<const UniverseObject>, T>& object_property_values) const
+    {
+        object_property_values.clear();
+        //Logger().debugStream() << "ValueRef::Statistic<T>::GetObjectPropertyValues source: " << source->Dump()
+        //                       << " sampling condition: " << m_sampling_condition->Dump()
+        //                       << " property name final: " << this->PropertyName().back();
+        ReferenceType original_ref_type = this->m_ref_type;
+        this->m_ref_type = ValueRef::CONDITION_LOCAL_CANDIDATE_REFERENCE;
+        for (Condition::ObjectSet::const_iterator it = objects.begin(); it != objects.end(); ++it) {
+            T property_value = this->Variable<T>::Eval(ScriptingContext(context, *it));
+            object_property_values[*it] = property_value;
+        }
+        this->m_ref_type = original_ref_type;
+    }
 
 private:
     StatisticType                   m_stat_type;
     const Condition::ConditionBase* m_sampling_condition;
 
+    /** Computes the statistic from the specified set of property values. */
+    template <class T>
+    friend FO_COMMON_API T impl::ReduceData(Statistic<T> const * const that, const std::map<TemporaryPtr<const UniverseObject>, T>& object_property_values);
+
     friend class boost::serialization::access;
     template <class Archive>
-    void serialize(Archive& ar, const unsigned int version);
+    void serialize(Archive& ar, const unsigned int version) {
+        ar  & BOOST_SERIALIZATION_BASE_OBJECT_NVP(Variable)
+            & BOOST_SERIALIZATION_NVP(m_stat_type)
+            & BOOST_SERIALIZATION_NVP(m_sampling_condition);
+    }
 };
+
+namespace ValueRef {
+    template <>
+    inline double Statistic<double>::Eval(const ScriptingContext& context) const;
+
+    template <>
+    inline int Statistic<int>::Eval(const ScriptingContext& context) const;
+
+    template <>
+    inline std::string Statistic<std::string>::Eval(const ScriptingContext& context) const;
+}
+
+template struct FO_COMMON_API ValueRef::Statistic<int>;
+template struct FO_COMMON_API ValueRef::Statistic<double>;
+template struct FO_COMMON_API ValueRef::Statistic<std::string>;
+
+
+
+///////////////////////////////////////////////////////////
+// ComplexVariable                                       //
+///////////////////////////////////////////////////////////
 
 /** The complex variable ValueRef class. The value returned by this node
   * is taken from the gamestate. */
@@ -234,22 +563,121 @@ struct FO_COMMON_API ValueRef::ComplexVariable : public ValueRef::Variable<T>
                              const ValueRefBase<int>* int_ref1 = 0,
                              const ValueRefBase<int>* int_ref2 = 0,
                              const ValueRefBase<std::string>* string_ref1 = 0,
-                             const ValueRefBase<std::string>* string_ref2 = 0);
+                             const ValueRefBase<std::string>* string_ref2 = 0)
+        : Variable<T>(ValueRef::NON_OBJECT_REFERENCE, std::vector<std::string>(1, variable_name))
+        , m_int_ref1(int_ref1)
+        , m_int_ref2(int_ref2)
+        , m_string_ref1(string_ref1)
+        , m_string_ref2(string_ref2)
+    {
+        //std::cout << "ComplexVariable: " << variable_name << ", "
+        //          << int_ref1 << ", " << int_ref2 << ", "
+        //          << string_ref1 << ", " << string_ref2 << std::endl;
+    }
 
-    ~ComplexVariable();
+    ~ComplexVariable()
+    {
+        delete m_int_ref1;
+        delete m_int_ref2;
+        delete m_string_ref1;
+        delete m_string_ref2;
+    }
 
-    virtual bool                    operator==(const ValueRef::ValueRefBase<T>& rhs) const;
-    const ValueRefBase<int>*        IntRef1() const;
-    const ValueRefBase<int>*        IntRef2() const;
-    const ValueRefBase<std::string>*StringRef1() const;
-    const ValueRefBase<std::string>*StringRef2() const;
+    virtual bool operator==(const ValueRef::ValueRefBase<T>& rhs) const
+    {
+        if (&rhs == this)
+            return true;
+        if (typeid(rhs) != typeid(*this))
+            return false;
+        const ValueRef::ComplexVariable<T>& rhs_ = static_cast<const ValueRef::ComplexVariable<T>&>(rhs);
+
+        if (this->m_property_name != rhs_.m_property_name)
+            return false;
+
+        if (m_int_ref1 == rhs_.m_int_ref1) {
+            // check next member
+        }
+        else if (!m_int_ref1 || !rhs_.m_int_ref1) {
+            return false;
+        }
+        else {
+            if (*m_int_ref1 != *(rhs_.m_int_ref1))
+                return false;
+        }
+
+        if (m_int_ref2 == rhs_.m_int_ref2) {
+            // check next member
+        }
+        else if (!m_int_ref2 || !rhs_.m_int_ref2) {
+            return false;
+        }
+        else {
+            if (*m_int_ref2 != *(rhs_.m_int_ref2))
+                return false;
+        }
+
+        if (m_string_ref1 == rhs_.m_string_ref1) {
+            // check next member
+        }
+        else if (!m_string_ref1 || !rhs_.m_string_ref1) {
+            return false;
+        }
+        else {
+            if (*m_string_ref1 != *(rhs_.m_string_ref1))
+                return false;
+        }
+
+        if (m_string_ref2 == rhs_.m_string_ref2) {
+            // check next member
+        }
+        else if (!m_string_ref2 || !rhs_.m_string_ref2) {
+            return false;
+        }
+        else {
+            if (*m_string_ref2 != *(rhs_.m_string_ref2))
+                return false;
+        }
+
+        return true;
+    }
+
+    const ValueRefBase<int>*        IntRef1() const { return m_int_ref1; }
+    const ValueRefBase<int>*        IntRef2() const { return m_int_ref2; }
+    const ValueRefBase<std::string>*StringRef1() const { return m_string_ref1; }
+    const ValueRefBase<std::string>*StringRef2() const { return m_string_ref2; }
     virtual T                       Eval(const ScriptingContext& context) const;
-    virtual bool                    RootCandidateInvariant() const;
-    virtual bool                    LocalCandidateInvariant() const;
-    virtual bool                    TargetInvariant() const;
-    virtual bool                    SourceInvariant() const;
-    virtual std::string             Description() const;
-    virtual std::string             Dump() const;
+    virtual bool                    RootCandidateInvariant() const
+    {
+        return ValueRef::Variable<T>::RootCandidateInvariant()
+            && (!m_int_ref1 || m_int_ref1->RootCandidateInvariant())
+            && (!m_int_ref2 || m_int_ref2->RootCandidateInvariant())
+            && (!m_string_ref1 || m_string_ref1->RootCandidateInvariant())
+            && (!m_string_ref2 || m_string_ref2->RootCandidateInvariant());
+    }
+    virtual bool                    LocalCandidateInvariant() const
+    {
+        return (!m_int_ref1 || m_int_ref1->LocalCandidateInvariant())
+            && (!m_int_ref2 || m_int_ref2->LocalCandidateInvariant())
+            && (!m_string_ref1 || m_string_ref1->LocalCandidateInvariant())
+            && (!m_string_ref2 || m_string_ref2->LocalCandidateInvariant());
+    }
+
+    virtual bool                    TargetInvariant() const
+    {
+        return (!m_int_ref1 || m_int_ref1->TargetInvariant())
+            && (!m_int_ref2 || m_int_ref2->TargetInvariant())
+            && (!m_string_ref1 || m_string_ref1->TargetInvariant())
+            && (!m_string_ref2 || m_string_ref2->TargetInvariant());
+    }
+    virtual bool                    SourceInvariant() const
+    {
+        return (!m_int_ref1 || m_int_ref1->SourceInvariant())
+            && (!m_int_ref2 || m_int_ref2->SourceInvariant())
+            && (!m_string_ref1 || m_string_ref1->SourceInvariant())
+            && (!m_string_ref2 || m_string_ref2->SourceInvariant());
+    }
+    virtual std::string             Description() const { return UserString("DESC_COMPLEX"); }
+    virtual std::string             Dump() const { return "ComplexVariable"; }
 
 protected:
     const ValueRefBase<int>*        m_int_ref1;
@@ -260,8 +688,56 @@ protected:
 private:
     friend class boost::serialization::access;
     template <class Archive>
-    void serialize(Archive& ar, const unsigned int version);
+    void serialize(Archive& ar, const unsigned int version)
+    {
+        ar  & BOOST_SERIALIZATION_BASE_OBJECT_NVP(Variable)
+            & BOOST_SERIALIZATION_NVP(m_int_ref1)
+            & BOOST_SERIALIZATION_NVP(m_int_ref2)
+            & BOOST_SERIALIZATION_NVP(m_string_ref1)
+            & BOOST_SERIALIZATION_NVP(m_string_ref2);
+    }
 };
+
+namespace ValueRef {
+    template <>
+    inline PlanetSize ComplexVariable<PlanetSize>::Eval(const ScriptingContext& context) const;
+
+    template <>
+    inline PlanetType ComplexVariable<PlanetType>::Eval(const ScriptingContext& context) const;
+
+    template <>
+    inline PlanetEnvironment ComplexVariable<PlanetEnvironment>::Eval(const ScriptingContext& context) const;
+
+    template <>
+    inline UniverseObjectType ComplexVariable<UniverseObjectType>::Eval(const ScriptingContext& context) const;
+
+    template <>
+    inline StarType ComplexVariable<StarType>::Eval(const ScriptingContext& context) const;
+
+    template <>
+    inline double ComplexVariable<double>::Eval(const ScriptingContext& context) const;
+
+    template <>
+    inline int ComplexVariable<int>::Eval(const ScriptingContext& context) const;
+
+    template <>
+    inline std::string ComplexVariable<std::string>::Eval(const ScriptingContext& context) const;
+}
+
+template struct FO_COMMON_API ValueRef::ComplexVariable<int>;
+template struct FO_COMMON_API ValueRef::ComplexVariable<double>;
+template struct FO_COMMON_API ValueRef::ComplexVariable<std::string>;
+template struct FO_COMMON_API ValueRef::ComplexVariable<PlanetSize>;
+template struct FO_COMMON_API ValueRef::ComplexVariable<PlanetType>;
+template struct FO_COMMON_API ValueRef::ComplexVariable<PlanetEnvironment>;
+template struct FO_COMMON_API ValueRef::ComplexVariable<UniverseObjectType>;
+template struct FO_COMMON_API ValueRef::ComplexVariable<StarType>;
+
+
+
+///////////////////////////////////////////////////////////
+// StaticCast                                            //
+///////////////////////////////////////////////////////////
 
 /** The variable static_cast class.  The value returned by this node is taken
   * from the ctor \a value_ref parameter's FromType value, static_cast to
@@ -269,17 +745,49 @@ private:
 template <class FromType, class ToType>
 struct FO_COMMON_API ValueRef::StaticCast : public ValueRef::Variable<ToType>
 {
-    StaticCast(const ValueRef::Variable<FromType>* value_ref);
-    ~StaticCast();
+    StaticCast(const ValueRef::Variable<FromType>* value_ref)
+        : ValueRef::Variable<ToType>(value_ref->GetReferenceType()
+        , value_ref->PropertyName())
+        , m_value_ref(value_ref)
+    { }
+    ~StaticCast()
+    {
+        delete m_value_ref;
+    }
 
-    virtual bool        operator==(const ValueRef::ValueRefBase<ToType>& rhs) const;
-    virtual ToType      Eval(const ScriptingContext& context) const;
-    virtual bool        RootCandidateInvariant() const;
-    virtual bool        LocalCandidateInvariant() const;
-    virtual bool        TargetInvariant() const;
-    virtual bool        SourceInvariant() const;
-    virtual std::string Description() const;
-    virtual std::string Dump() const;
+    virtual bool        operator==(const ValueRef::ValueRefBase<ToType>& rhs) const
+    {
+        if (&rhs == this)
+            return true;
+        if (typeid(rhs) != typeid(*this))
+            return false;
+        const ValueRef::StaticCast<FromType, ToType>& rhs_ =
+            static_cast<const ValueRef::StaticCast<FromType, ToType>&>(rhs);
+
+        if (m_value_ref == rhs_.m_value_ref) {
+            // check next member
+        }
+        else if (!m_value_ref || !rhs_.m_value_ref) {
+            return false;
+        }
+        else {
+            if (*m_value_ref != *(rhs_.m_value_ref))
+                return false;
+        }
+
+        return true;
+    }
+
+    virtual ToType      Eval(const ScriptingContext& context) const
+    {
+        return static_cast<ToType>(m_value_ref->Eval(context));
+    }
+    virtual bool        RootCandidateInvariant() const { return m_value_ref->RootCandidateInvariant(); }
+    virtual bool        LocalCandidateInvariant() const { return m_value_ref->LocalCandidateInvariant(); }
+    virtual bool        TargetInvariant() const { return m_value_ref->TargetInvariant(); }
+    virtual bool        SourceInvariant() const { return m_value_ref->SourceInvariant(); }
+    virtual std::string Description() const { return m_value_ref->Description(); }
+    virtual std::string Dump() const { return m_value_ref->Dump(); }
     const ValueRefBase<FromType>*   GetValueRef() const { return m_value_ref; }
 
 private:
@@ -287,8 +795,18 @@ private:
 
     friend class boost::serialization::access;
     template <class Archive>
-    void serialize(Archive& ar, const unsigned int version);
+    void serialize(Archive& ar, const unsigned int version)
+    {
+        ar  & BOOST_SERIALIZATION_BASE_OBJECT_NVP(ValueRefBase)
+            & BOOST_SERIALIZATION_NVP(m_value_ref);
+    }
 };
+
+
+
+///////////////////////////////////////////////////////////
+// StringCast                                            //
+///////////////////////////////////////////////////////////
 
 /** The variable lexical_cast to string class.  The value returned by this node
   * is taken from the ctor \a value_ref parameter's FromType value,
@@ -296,17 +814,48 @@ private:
 template <class FromType>
 struct FO_COMMON_API ValueRef::StringCast : public ValueRef::Variable<std::string>
 {
-    StringCast(const ValueRef::Variable<FromType>* value_ref);
-    ~StringCast();
+    StringCast(const ValueRef::Variable<FromType>* value_ref)
+        : ValueRef::Variable<std::string>(value_ref->GetReferenceType()
+        , value_ref->PropertyName())
+        , m_value_ref(value_ref)
+    { }
+    ~StringCast()
+    {
+        delete m_value_ref;
+    }
 
-    virtual bool        operator==(const ValueRef::ValueRefBase<std::string>& rhs) const;
-    virtual std::string Eval(const ScriptingContext& context) const;
-    virtual bool        RootCandidateInvariant() const;
-    virtual bool        LocalCandidateInvariant() const;
-    virtual bool        TargetInvariant() const;
-    virtual bool        SourceInvariant() const;
-    virtual std::string Description() const;
-    virtual std::string Dump() const;
+    virtual bool        operator==(const ValueRef::ValueRefBase<std::string>& rhs) const
+    {
+        if (&rhs == this)
+            return true;
+        if (typeid(rhs) != typeid(*this))
+            return false;
+        const ValueRef::StringCast<FromType>& rhs_ =
+            static_cast<const ValueRef::StringCast<FromType>&>(rhs);
+
+        if (m_value_ref == rhs_.m_value_ref) {
+            // check next member
+        }
+        else if (!m_value_ref || !rhs_.m_value_ref) {
+            return false;
+        }
+        else {
+            if (*m_value_ref != *(rhs_.m_value_ref))
+                return false;
+        }
+
+        return true;
+    }
+    virtual std::string Eval(const ScriptingContext& context) const
+    {
+        return boost::lexical_cast<std::string>(m_value_ref->Eval(context));
+    }
+    virtual bool        RootCandidateInvariant() const { return m_value_ref->RootCandidateInvariant(); }
+    virtual bool        LocalCandidateInvariant() const { return m_value_ref->LocalCandidateInvariant(); }
+    virtual bool        TargetInvariant() const { return m_value_ref->TargetInvariant(); }
+    virtual bool        SourceInvariant() const { return m_value_ref->SourceInvariant(); }
+    virtual std::string Description() const { return m_value_ref->Description(); }
+    virtual std::string Dump() const { return m_value_ref->Dump(); }
     const ValueRefBase<FromType>*   GetValueRef() const { return m_value_ref; }
 
 private:
@@ -314,8 +863,29 @@ private:
 
     friend class boost::serialization::access;
     template <class Archive>
-    void serialize(Archive& ar, const unsigned int version);
+    void serialize(Archive& ar, const unsigned int version)
+    {
+        ar  & BOOST_SERIALIZATION_BASE_OBJECT_NVP(ValueRefBase)
+            & BOOST_SERIALIZATION_NVP(m_value_ref);
+    }
 };
+
+namespace ValueRef {
+    template <>
+    inline std::string StringCast<double>::Eval(const ScriptingContext& context) const;
+
+    template <>
+    inline std::string StringCast<int>::Eval(const ScriptingContext& context) const;
+}
+
+template struct FO_COMMON_API ValueRef::StringCast<int>;
+template struct FO_COMMON_API ValueRef::StringCast<double>;
+
+
+
+///////////////////////////////////////////////////////////
+// UserStringLookup                                      //
+///////////////////////////////////////////////////////////
 
 /** Looks up a string ValueRef and returns the UserString equivalent. */
 struct FO_COMMON_API ValueRef::UserStringLookup : public ValueRef::Variable<std::string> {
@@ -336,8 +906,18 @@ private:
 
     friend class boost::serialization::access;
     template <class Archive>
-    void serialize(Archive& ar, const unsigned int version);
+    void serialize(Archive& ar, const unsigned int version)
+    {
+        ar  & BOOST_SERIALIZATION_BASE_OBJECT_NVP(ValueRefBase<std::string>)
+            & BOOST_SERIALIZATION_NVP(m_value_ref);
+    }
 };
+
+
+
+///////////////////////////////////////////////////////////
+// Operation                                             //
+///////////////////////////////////////////////////////////
 
 /** An arithmetic operation node ValueRef class.  One of addition, subtraction,
   * mutiplication, division, or unary negation is performed on the child(ren)
@@ -345,22 +925,270 @@ private:
 template <class T>
 struct FO_COMMON_API ValueRef::Operation : public ValueRef::ValueRefBase<T>
 {
-    Operation(OpType op_type, const ValueRefBase<T>* operand1,
-              const ValueRefBase<T>* operand2);                 ///< binary operation ctor
-    Operation(OpType op_type, const ValueRefBase<T>* operand);  ///< unary operation ctor
-    ~Operation();
+    Operation(OpType op_type, const ValueRefBase<T>* operand1, const ValueRefBase<T>* operand2)
+        : m_op_type(op_type), m_operand1(operand1), m_operand2(operand2) ///< binary operation ctor
+    { }
+    Operation(OpType op_type, const ValueRefBase<T>* operand)
+        : m_op_type(op_type), m_operand1(operand), m_operand2(0)         ///< unary operation ctor
+    { }
+    ~Operation()
+    {
+        delete m_operand1;
+        delete m_operand2;
+    }
 
-    virtual bool            operator==(const ValueRef::ValueRefBase<T>& rhs) const;
-    OpType                  GetOpType() const;
-    const ValueRefBase<T>*  LHS() const;
-    const ValueRefBase<T>*  RHS() const;
-    virtual T               Eval(const ScriptingContext& context) const;
-    virtual bool            RootCandidateInvariant() const;
-    virtual bool            LocalCandidateInvariant() const;
-    virtual bool            TargetInvariant() const;
-    virtual bool            SourceInvariant() const;
-    virtual std::string     Description() const;
-    virtual std::string     Dump() const;
+    virtual bool            operator==(const ValueRef::ValueRefBase<T>& rhs) const
+    {
+        if (&rhs == this)
+            return true;
+        if (typeid(rhs) != typeid(*this))
+            return false;
+        const ValueRef::Operation<T>& rhs_ = static_cast<const ValueRef::Operation<T>&>(rhs);
+
+        if (m_operand1 == rhs_.m_operand1) {
+            // check next member
+        }
+        else if (!m_operand1 || !rhs_.m_operand1) {
+            return false;
+        }
+        else {
+            if (*m_operand1 != *(rhs_.m_operand1))
+                return false;
+        }
+
+        if (m_operand2 == rhs_.m_operand2) {
+            // check next member
+        }
+        else if (!m_operand2 || !rhs_.m_operand2) {
+            return false;
+        }
+        else {
+            if (*m_operand2 != *(rhs_.m_operand2))
+                return false;
+        }
+
+        return true;
+}
+    OpType                  GetOpType() const { return m_op_type; }
+    const ValueRefBase<T>*  LHS() const { return m_operand1; }
+    const ValueRefBase<T>*  RHS() const { return m_operand2; }
+    virtual T               Eval(const ScriptingContext& context) const
+    {
+        switch (m_op_type) {
+        case PLUS:
+            return T(m_operand1->Eval(context) +
+                m_operand2->Eval(context));
+            break;
+        case MINUS:
+            return T(m_operand1->Eval(context) -
+                m_operand2->Eval(context));
+            break;
+        default:
+            throw std::runtime_error("ValueRef evaluated with an unknown or invalid OpType.");
+            break;
+        }
+    }
+    virtual bool            RootCandidateInvariant() const
+    {
+        if (m_op_type == RANDOM_UNIFORM)
+            return false;
+        if (m_operand1 && !m_operand1->RootCandidateInvariant())
+            return false;
+        if (m_operand2 && !m_operand2->RootCandidateInvariant())
+            return false;
+        return true;
+    }
+    virtual bool            LocalCandidateInvariant() const
+    {
+        if (m_op_type == RANDOM_UNIFORM)
+            return false;
+        if (m_operand1 && !m_operand1->LocalCandidateInvariant())
+            return false;
+        if (m_operand2 && !m_operand2->LocalCandidateInvariant())
+            return false;
+        return true;
+    }
+    virtual bool            TargetInvariant() const
+    {
+        if (m_op_type == RANDOM_UNIFORM)
+            return false;
+        if (m_operand1 && !m_operand1->TargetInvariant())
+            return false;
+        if (m_operand2 && !m_operand2->TargetInvariant())
+            return false;
+        return true;
+    }
+    virtual bool            SourceInvariant() const
+    {
+        if (m_op_type == RANDOM_UNIFORM)
+            return false;
+        if (m_operand1 && !m_operand1->SourceInvariant())
+            return false;
+        if (m_operand2 && !m_operand2->SourceInvariant())
+            return false;
+        return true;
+    }
+    virtual std::string     Description() const
+    {
+        if (m_op_type == NEGATE) {
+            //Logger().debugStream() << "Operation is negation";
+            if (const ValueRef::Operation<T>* rhs = dynamic_cast<const ValueRef::Operation<T>*>(m_operand1)) {
+                OpType op_type = rhs->GetOpType();
+                if (op_type == PLUS || op_type == MINUS ||
+                    op_type == TIMES || op_type == DIVIDE ||
+                    op_type == NEGATE || op_type == EXPONENTIATE)
+                    return "-(" + m_operand1->Description() + ")";
+            }
+            else {
+                return "-" + m_operand1->Description();
+            }
+        }
+
+        if (m_op_type == ABS)
+            return "abs(" + m_operand1->Description() + ")";
+        if (m_op_type == LOGARITHM)
+            return "log(" + m_operand1->Description() + ")";
+        if (m_op_type == SINE)
+            return "sin(" + m_operand1->Description() + ")";
+        if (m_op_type == COSINE)
+            return "cos(" + m_operand1->Description() + ")";
+        if (m_op_type == MINIMUM)
+            return "min(" + m_operand1->Description() + ", " + m_operand1->Description() + ")";
+        if (m_op_type == MAXIMUM)
+            return "max(" + m_operand1->Description() + ", " + m_operand1->Description() + ")";
+        if (m_op_type == RANDOM_UNIFORM)
+            return "random(" + m_operand1->Description() + ", " + m_operand1->Description() + ")";
+
+
+        bool parenthesize_lhs = false;
+        bool parenthesize_rhs = false;
+        if (const ValueRef::Operation<T>* lhs = dynamic_cast<const ValueRef::Operation<T>*>(m_operand1)) {
+            OpType op_type = lhs->GetOpType();
+            if (
+                (m_op_type == EXPONENTIATE &&
+                (op_type == EXPONENTIATE || op_type == TIMES || op_type == DIVIDE ||
+                op_type == PLUS || op_type == MINUS || op_type == NEGATE)
+                ) ||
+                ((m_op_type == TIMES || m_op_type == DIVIDE) &&
+                (op_type == PLUS || op_type == MINUS) || op_type == NEGATE)
+                )
+                parenthesize_lhs = true;
+        }
+        if (const ValueRef::Operation<T>* rhs = dynamic_cast<const ValueRef::Operation<T>*>(m_operand2)) {
+            OpType op_type = rhs->GetOpType();
+            if (
+                (m_op_type == EXPONENTIATE &&
+                (op_type == EXPONENTIATE || op_type == TIMES || op_type == DIVIDE ||
+                op_type == PLUS || op_type == MINUS || op_type == NEGATE)
+                ) ||
+                ((m_op_type == TIMES || m_op_type == DIVIDE) &&
+                (op_type == PLUS || op_type == MINUS) || op_type == NEGATE)
+                )
+                parenthesize_rhs = true;
+        }
+
+        std::string retval;
+        if (parenthesize_lhs)
+            retval += '(' + m_operand1->Description() + ')';
+        else
+            retval += m_operand1->Description();
+
+        switch (m_op_type) {
+        case PLUS:          retval += " + "; break;
+        case MINUS:         retval += " - "; break;
+        case TIMES:         retval += " * "; break;
+        case DIVIDE:        retval += " / "; break;
+        case EXPONENTIATE:  retval += " ^ "; break;
+        default:            retval += " ? "; break;
+        }
+
+        if (parenthesize_rhs)
+            retval += '(' + m_operand2->Description() + ')';
+        else
+            retval += m_operand2->Description();
+
+        return retval;
+    }
+    virtual std::string     Dump() const
+    {
+        if (m_op_type == NEGATE) {
+            if (const ValueRef::Operation<T>* rhs = dynamic_cast<const ValueRef::Operation<T>*>(m_operand1)) {
+                OpType op_type = rhs->GetOpType();
+                if (op_type == PLUS || op_type == MINUS ||
+                    op_type == TIMES || op_type == DIVIDE ||
+                    op_type == NEGATE || op_type == EXPONENTIATE)
+                    return "-(" + m_operand1->Dump() + ")";
+            }
+            else {
+                return "-" + m_operand1->Dump();
+            }
+        }
+
+        if (m_op_type == ABS)
+            return "abs(" + m_operand1->Dump() + ")";
+        if (m_op_type == LOGARITHM)
+            return "log(" + m_operand1->Dump() + ")";
+        if (m_op_type == SINE)
+            return "sin(" + m_operand1->Dump() + ")";
+        if (m_op_type == COSINE)
+            return "cos(" + m_operand1->Dump() + ")";
+        if (m_op_type == MINIMUM)
+            return "min(" + m_operand1->Dump() + ", " + m_operand1->Dump() + ")";
+        if (m_op_type == MAXIMUM)
+            return "max(" + m_operand1->Dump() + ", " + m_operand1->Dump() + ")";
+        if (m_op_type == RANDOM_UNIFORM)
+            return "random(" + m_operand1->Dump() + ", " + m_operand1->Dump() + ")";
+
+
+        bool parenthesize_lhs = false;
+        bool parenthesize_rhs = false;
+        if (const ValueRef::Operation<T>* lhs = dynamic_cast<const ValueRef::Operation<T>*>(m_operand1)) {
+            OpType op_type = lhs->GetOpType();
+            if (
+                (m_op_type == EXPONENTIATE &&
+                (op_type == EXPONENTIATE || op_type == TIMES || op_type == DIVIDE ||
+                op_type == PLUS || op_type == MINUS || op_type == NEGATE)
+                ) ||
+                ((m_op_type == TIMES || m_op_type == DIVIDE) &&
+                (op_type == PLUS || op_type == MINUS) || op_type == NEGATE)
+                )
+                parenthesize_lhs = true;
+        }
+        if (const ValueRef::Operation<T>* rhs = dynamic_cast<const ValueRef::Operation<T>*>(m_operand2)) {
+            OpType op_type = rhs->GetOpType();
+            if (
+                (m_op_type == EXPONENTIATE &&
+                (op_type == EXPONENTIATE || op_type == TIMES || op_type == DIVIDE ||
+                op_type == PLUS || op_type == MINUS || op_type == NEGATE)
+                ) ||
+                ((m_op_type == TIMES || m_op_type == DIVIDE) &&
+                (op_type == PLUS || op_type == MINUS) || op_type == NEGATE)
+                )
+                parenthesize_rhs = true;
+        }
+
+        std::string retval;
+        if (parenthesize_lhs)
+            retval += '(' + m_operand1->Dump() + ')';
+        else
+            retval += m_operand1->Dump();
+
+        switch (m_op_type) {
+        case PLUS:          retval += " + "; break;
+        case MINUS:         retval += " - "; break;
+        case TIMES:         retval += " * "; break;
+        case DIVIDE:        retval += " / "; break;
+        case EXPONENTIATE:  retval += " ^ "; break;
+        default:            retval += " ? "; break;
+        }
+
+        if (parenthesize_rhs)
+            retval += '(' + m_operand2->Dump() + ')';
+        else
+            retval += m_operand2->Dump();
+
+        return retval;
+    }
 
 private:
     OpType                  m_op_type;
@@ -369,1215 +1197,31 @@ private:
 
     friend class boost::serialization::access;
     template <class Archive>
-    void serialize(Archive& ar, const unsigned int version);
+    void serialize(Archive& ar, const unsigned int version)
+    {
+        ar  & BOOST_SERIALIZATION_BASE_OBJECT_NVP(ValueRefBase)
+            & BOOST_SERIALIZATION_NVP(m_op_type)
+            & BOOST_SERIALIZATION_NVP(m_operand1)
+            & BOOST_SERIALIZATION_NVP(m_operand2);
+    }
 };
 
 namespace ValueRef {
-    FO_COMMON_API MeterType     NameToMeter(std::string name);
-    FO_COMMON_API std::string   MeterToName(MeterType meter);
-
-    FO_COMMON_API std::string   ReconstructName(const std::vector<std::string>& property_name,
-                                                ReferenceType ref_type);
-}
-
-// Template Implementations
-///////////////////////////////////////////////////////////
-// ValueRefBase                                          //
-///////////////////////////////////////////////////////////
-template <class T>
-bool ValueRef::ValueRefBase<T>::operator==(const ValueRef::ValueRefBase<T>& rhs) const
-{
-    if (&rhs == this)
-        return true;
-    if (typeid(rhs) != typeid(*this))
-        return false;
-    return true;
-}
-
-template <class T>
-template <class Archive>
-void ValueRef::ValueRefBase<T>::serialize(Archive& ar, const unsigned int version)
-{}
-
-///////////////////////////////////////////////////////////
-// Constant                                              //
-///////////////////////////////////////////////////////////
-template <class T>
-ValueRef::Constant<T>::Constant(T value) :
-    m_value(value)
-{}
-
-template <class T>
-bool ValueRef::Constant<T>::operator==(const ValueRef::ValueRefBase<T>& rhs) const
-{
-    if (&rhs == this)
-        return true;
-    if (typeid(rhs) != typeid(*this))
-        return false;
-    const ValueRef::Constant<T>& rhs_ = static_cast<const ValueRef::Constant<T>&>(rhs);
-
-    return m_value == rhs_.m_value;
-}
-
-template <class T>
-T ValueRef::Constant<T>::Value() const
-{ return m_value; }
-
-template <class T>
-T ValueRef::Constant<T>::Eval(const ScriptingContext& context) const
-{ return m_value; }
-
-template <class T>
-std::string ValueRef::Constant<T>::Description() const
-{ return UserString(boost::lexical_cast<std::string>(m_value)); }
-
-namespace ValueRef {
     template <>
-    std::string Constant<int>::Description() const;
+    inline std::string Operation<std::string>::Eval(const ScriptingContext& context) const;
 
     template <>
-    std::string Constant<double>::Description() const;
+    inline double Operation<double>::Eval(const ScriptingContext& context) const;
 
     template <>
-    std::string Constant<std::string>::Description() const;
+    inline int Operation<int>::Eval(const ScriptingContext& context) const;
 
     template <>
-    std::string Constant<PlanetSize>::Dump() const;
-
-    template <>
-    std::string Constant<PlanetType>::Dump() const;
-
-    template <>
-    std::string Constant<PlanetEnvironment>::Dump() const;
-
-    template <>
-    std::string Constant<UniverseObjectType>::Dump() const;
-
-    template <>
-    std::string Constant<StarType>::Dump() const;
-
-    template <>
-    std::string Constant<double>::Dump() const;
-
-    template <>
-    std::string Constant<int>::Dump() const;
-
-    template <>
-    std::string Constant<std::string>::Dump() const;
+    inline std::string Operation<double>::Description() const;
 }
 
-template <class T>
-template <class Archive>
-void ValueRef::Constant<T>::serialize(Archive& ar, const unsigned int version)
-{
-    ar  & BOOST_SERIALIZATION_BASE_OBJECT_NVP(ValueRefBase)
-        & BOOST_SERIALIZATION_NVP(m_value);
-}
-
-///////////////////////////////////////////////////////////
-// Variable                                              //
-///////////////////////////////////////////////////////////
-template <class T>
-ValueRef::Variable<T>::Variable(ReferenceType ref_type, const std::vector<std::string>& property_name) :
-    m_ref_type(ref_type),
-    m_property_name(property_name.begin(), property_name.end())
-{}
-
-template <class T>
-ValueRef::Variable<T>::Variable(ReferenceType ref_type, const std::string& property_name) :
-    m_ref_type(ref_type),
-    m_property_name()
-{
-    m_property_name.push_back(property_name);
-}
-
-template <class T>
-bool ValueRef::Variable<T>::operator==(const ValueRef::ValueRefBase<T>& rhs) const
-{
-    if (&rhs == this)
-        return true;
-    if (typeid(rhs) != typeid(*this))
-        return false;
-    const ValueRef::Variable<T>& rhs_ = static_cast<const ValueRef::Variable<T>&>(rhs);
-    return (m_ref_type == rhs_.m_ref_type) && (m_property_name == rhs_.m_property_name);
-}
-
-template <class T>
-ValueRef::ReferenceType ValueRef::Variable<T>::GetReferenceType() const
-{ return m_ref_type; }
-
-template <class T>
-const std::vector<std::string>& ValueRef::Variable<T>::PropertyName() const
-{ return m_property_name; }
-
-template <class T>
-bool ValueRef::Variable<T>::RootCandidateInvariant() const
-{ return m_ref_type != CONDITION_ROOT_CANDIDATE_REFERENCE; }
-
-template <class T>
-bool ValueRef::Variable<T>::LocalCandidateInvariant() const
-{ return m_ref_type != CONDITION_LOCAL_CANDIDATE_REFERENCE; }
-
-template <class T>
-bool ValueRef::Variable<T>::TargetInvariant() const
-{ return m_ref_type != EFFECT_TARGET_REFERENCE && m_ref_type != EFFECT_TARGET_VALUE_REFERENCE; }
-
-template <class T>
-bool ValueRef::Variable<T>::SourceInvariant() const
-{ return m_ref_type != SOURCE_REFERENCE; }
-
-FO_COMMON_API std::string FormatedDescriptionPropertyNames(ValueRef::ReferenceType ref_type,
-                                                           const std::vector<std::string>& property_names);
-
-template <class T>
-std::string ValueRef::Variable<T>::Description() const
-{
-    return FormatedDescriptionPropertyNames(m_ref_type, m_property_name);
-}
-
-template <class T>
-std::string ValueRef::Variable<T>::Dump() const
-{ return ReconstructName(m_property_name, m_ref_type); }
-
-namespace ValueRef {
-    template <>
-    PlanetSize Variable<PlanetSize>::Eval(const ScriptingContext& context) const;
-
-    template <>
-    PlanetType Variable<PlanetType>::Eval(const ScriptingContext& context) const;
-
-    template <>
-    PlanetEnvironment Variable<PlanetEnvironment>::Eval(const ScriptingContext& context) const;
-
-    template <>
-    UniverseObjectType Variable<UniverseObjectType>::Eval(const ScriptingContext& context) const;
-
-    template <>
-    StarType Variable<StarType>::Eval(const ScriptingContext& context) const;
-
-    template <>
-    double Variable<double>::Eval(const ScriptingContext& context) const;
-
-    template <>
-    int Variable<int>::Eval(const ScriptingContext& context) const;
-}
-
-template <class T>
-template <class Archive>
-void ValueRef::Variable<T>::serialize(Archive& ar, const unsigned int version)
-{
-    ar  & BOOST_SERIALIZATION_BASE_OBJECT_NVP(ValueRefBase)
-        & BOOST_SERIALIZATION_NVP(m_ref_type)
-        & BOOST_SERIALIZATION_NVP(m_property_name);
-}
-
-///////////////////////////////////////////////////////////
-// Statistic                                             //
-///////////////////////////////////////////////////////////
-template <class T>
-ValueRef::Statistic<T>::Statistic(const std::vector<std::string>& property_name,
-                                  StatisticType stat_type,
-                                  const Condition::ConditionBase* sampling_condition) :
-    Variable<T>(ValueRef::NON_OBJECT_REFERENCE, property_name),
-    m_stat_type(stat_type),
-    m_sampling_condition(sampling_condition)
-{}
-
-template <class T>
-ValueRef::Statistic<T>::~Statistic()
-{ delete m_sampling_condition; }
-
-template <class T>
-bool ValueRef::Statistic<T>::operator==(const ValueRef::ValueRefBase<T>& rhs) const
-{
-    if (&rhs == this)
-        return true;
-    if (typeid(rhs) != typeid(*this))
-        return false;
-    const ValueRef::Statistic<T>& rhs_ = static_cast<const ValueRef::Statistic<T>&>(rhs);
-
-    if (m_stat_type != rhs_.m_stat_type)
-        return false;
-    if (this->m_property_name != rhs_.m_property_name)
-        return false;
-
-    if (m_sampling_condition == rhs_.m_sampling_condition) {
-        // check next member
-    } else if (!m_sampling_condition || !rhs_.m_sampling_condition) {
-        return false;
-    } else {
-        if (*m_sampling_condition != *(rhs_.m_sampling_condition))
-            return false;
-    }
-
-    return true;
-}
-
-template <class T>
-void ValueRef::Statistic<T>::GetConditionMatches(const ScriptingContext& context,
-                                                 Condition::ObjectSet& condition_targets,
-                                                 const Condition::ConditionBase* condition) const
-{
-    condition_targets.clear();
-    if (!condition)
-        return;
-    condition->Eval(context, condition_targets);
-}
-
-template <class T>
-void ValueRef::Statistic<T>::GetObjectPropertyValues(const ScriptingContext& context,
-                                                     const Condition::ObjectSet& objects,
-                                                     std::map<TemporaryPtr<const UniverseObject>, T>& object_property_values) const
-{
-    object_property_values.clear();
-    //Logger().debugStream() << "ValueRef::Statistic<T>::GetObjectPropertyValues source: " << source->Dump()
-    //                       << " sampling condition: " << m_sampling_condition->Dump()
-    //                       << " property name final: " << this->PropertyName().back();
-    ReferenceType original_ref_type = this->m_ref_type;
-    this->m_ref_type = ValueRef::CONDITION_LOCAL_CANDIDATE_REFERENCE;
-    for (Condition::ObjectSet::const_iterator it = objects.begin(); it != objects.end(); ++it) {
-        T property_value = this->Variable<T>::Eval(ScriptingContext(context, *it));
-        object_property_values[*it] = property_value;
-    }
-    this->m_ref_type = original_ref_type;
-}
-
-template <class T>
-bool ValueRef::Statistic<T>::RootCandidateInvariant() const
-{ return ValueRef::Variable<T>::RootCandidateInvariant() && m_sampling_condition->RootCandidateInvariant(); }
-
-template <class T>
-bool ValueRef::Statistic<T>::LocalCandidateInvariant() const
-{
-    // don't need to check if sampling condition is LocalCandidateInvariant, as
-    // all conditions aren't, but that refers to their own local candidate.  no
-    // condition is explicitly dependent on the parent context's local candidate.
-    return ValueRef::Variable<T>::LocalCandidateInvariant();
-}
-
-template <class T>
-bool ValueRef::Statistic<T>::TargetInvariant() const
-{ return ValueRef::Variable<T>::TargetInvariant() && m_sampling_condition->TargetInvariant(); }
-
-template <class T>
-bool ValueRef::Statistic<T>::SourceInvariant() const
-{ return ValueRef::Variable<T>::SourceInvariant() && m_sampling_condition->SourceInvariant(); }
-
-template <class T>
-std::string ValueRef::Statistic<T>::Description() const
-{ return UserString("DESC_STATISTIC"); }
-
-template <class T>
-std::string ValueRef::Statistic<T>::Dump() const
-{ return "Statistic"; }
-
-template <class T>
-T ValueRef::Statistic<T>::Eval(const ScriptingContext& context) const
-{
-    // the only statistic that can be computed on non-number property types
-    // and that is itself of a non-number type is the most common value
-    if (m_stat_type != MODE)
-        throw std::runtime_error("ValueRef evaluated with an invalid StatisticType for the return type.");
-
-    Condition::ObjectSet condition_matches;
-    GetConditionMatches(context, condition_matches, m_sampling_condition);
-
-    if (condition_matches.empty())
-        return T(-1);   // should be INVALID_T of enum types
-
-    // evaluate property for each condition-matched object
-    std::map<TemporaryPtr<const UniverseObject>, T> object_property_values;
-    GetObjectPropertyValues(context, condition_matches, object_property_values);
-
-    // count number of each result, tracking which has the most occurances
-    std::map<T, unsigned int> histogram;
-    typename std::map<T, unsigned int>::const_iterator most_common_property_value_it = histogram.begin();
-    unsigned int max_seen(0);
-
-    for (typename std::map<TemporaryPtr<const UniverseObject>, T>::const_iterator it = object_property_values.begin();
-         it != object_property_values.end(); ++it)
-    {
-        const T& property_value = it->second;
-
-        typename std::map<T, unsigned int>::iterator hist_it = histogram.find(property_value);
-        if (hist_it == histogram.end())
-            hist_it = histogram.insert(std::make_pair(property_value, 0)).first;
-        unsigned int& num_seen = hist_it->second;
-
-        num_seen++;
-
-        if (num_seen > max_seen) {
-            most_common_property_value_it = hist_it;
-            max_seen = num_seen;
-        }
-    }
-
-    // return result (property value) that occured most frequently
-    return most_common_property_value_it->first;
-}
-
-namespace ValueRef {
-    template <>
-    double Statistic<double>::Eval(const ScriptingContext& context) const;
-
-    template <>
-    int Statistic<int>::Eval(const ScriptingContext& context) const;
-
-    template <>
-    std::string Statistic<std::string>::Eval(const ScriptingContext& context) const;
-}
-
-template <class T>
-T ValueRef::Statistic<T>::ReduceData(const std::map<TemporaryPtr<const UniverseObject>, T>& object_property_values) const
-{
-    if (object_property_values.empty())
-        return T(0);
-
-    switch (m_stat_type) {
-        case COUNT: {
-            return T(object_property_values.size());
-            break;
-        }
-        case UNIQUE_COUNT: {
-            std::set<T> observed_values;
-            for (typename std::map<TemporaryPtr<const UniverseObject>, T>::const_iterator it = object_property_values.begin();
-                 it != object_property_values.end(); ++it)
-            { observed_values.insert(it->second); }
-            return T(observed_values.size());
-            break;
-        }
-        case IF: {
-            if (object_property_values.empty())
-                return T(0);
-            return T(1);
-            break;
-        }
-        case SUM: {
-            T accumulator(0);
-            for (typename std::map<TemporaryPtr<const UniverseObject>, T>::const_iterator it = object_property_values.begin();
-                 it != object_property_values.end(); ++it)
-            { accumulator += it->second; }
-            return accumulator;
-            break;
-        }
-
-        case MEAN: {
-            T accumulator(0);
-            for (typename std::map<TemporaryPtr<const UniverseObject>, T>::const_iterator it = object_property_values.begin();
-                 it != object_property_values.end(); ++it)
-            { accumulator += it->second; }
-            return accumulator / static_cast<T>(object_property_values.size());
-            break;
-        }
-
-        case RMS: {
-            T accumulator(0);
-            for (typename std::map<TemporaryPtr<const UniverseObject>, T>::const_iterator it = object_property_values.begin();
-                 it != object_property_values.end(); ++it)
-            { accumulator += (it->second * it->second); }
-            accumulator /= static_cast<T>(object_property_values.size());
-
-            double retval = std::sqrt(static_cast<double>(accumulator));
-            return static_cast<T>(retval);
-            break;
-        }
-
-        case MODE: {
-            // count number of each result, tracking which has the most occurances
-            std::map<T, unsigned int> histogram;
-            typename std::map<T, unsigned int>::const_iterator most_common_property_value_it = histogram.begin();
-            unsigned int max_seen(0);
-
-            for (typename std::map<TemporaryPtr<const UniverseObject>, T>::const_iterator it = object_property_values.begin();
-                 it != object_property_values.end(); ++it)
-            {
-                const T& property_value = it->second;
-
-                typename std::map<T, unsigned int>::iterator hist_it = histogram.find(property_value);
-                if (hist_it == histogram.end())
-                    hist_it = histogram.insert(std::make_pair(property_value, 0)).first;
-                unsigned int& num_seen = hist_it->second;
-
-                num_seen++;
-
-                if (num_seen > max_seen) {
-                    most_common_property_value_it = hist_it;
-                    max_seen = num_seen;
-                }
-            }
-
-            // return result (property value) that occured most frequently
-            return most_common_property_value_it->first;
-            break;
-        }
-
-        case MAX: {
-            typename std::map<TemporaryPtr<const UniverseObject>, T>::const_iterator max_it = object_property_values.begin();
-
-            for (typename std::map<TemporaryPtr<const UniverseObject>, T>::const_iterator it = object_property_values.begin();
-                 it != object_property_values.end(); ++it)
-            {
-                const T& property_value = it->second;
-                if (property_value > max_it->second)
-                    max_it = it;
-            }
-
-            // return maximal observed propery value
-            return max_it->second;
-            break;
-        }
-
-        case MIN: {
-            typename std::map<TemporaryPtr<const UniverseObject>, T>::const_iterator min_it = object_property_values.begin();
-
-            for (typename std::map<TemporaryPtr<const UniverseObject>, T>::const_iterator it = object_property_values.begin();
-                 it != object_property_values.end(); ++it)
-            {
-                const T& property_value = it->second;
-                if (property_value < min_it->second)
-                    min_it = it;
-            }
-
-            // return minimal observed propery value
-            return min_it->second;
-            break;
-        }
-
-        case SPREAD: {
-            typename std::map<TemporaryPtr<const UniverseObject>, T>::const_iterator max_it = object_property_values.begin();
-            typename std::map<TemporaryPtr<const UniverseObject>, T>::const_iterator min_it = object_property_values.begin();
-
-            for (typename std::map<TemporaryPtr<const UniverseObject>, T>::const_iterator it = object_property_values.begin();
-                 it != object_property_values.end(); ++it)
-            {
-                const T& property_value = it->second;
-                if (property_value > max_it->second)
-                    max_it = it;
-                if (property_value < min_it->second)
-                    min_it = it;
-            }
-
-            // return difference between maximal and minimal observed propery values
-            return max_it->second - min_it->second;
-            break;
-        }
-
-        case STDEV: {
-            if (object_property_values.size() < 2)
-                return T(0);
-
-            // find sample mean
-            T accumulator(0);
-            for (typename std::map<TemporaryPtr<const UniverseObject>, T>::const_iterator it = object_property_values.begin();
-                 it != object_property_values.end(); ++it)
-            { accumulator += it->second; }
-            const T MEAN(accumulator / static_cast<T>(object_property_values.size()));
-
-            // find average of squared deviations from sample mean
-            accumulator = T(0);
-            for (typename std::map<TemporaryPtr<const UniverseObject>, T>::const_iterator it = object_property_values.begin();
-                 it != object_property_values.end(); ++it)
-            { accumulator += (it->second - MEAN) * (it->second - MEAN); }
-            const T MEAN_DEV2(accumulator / static_cast<T>(static_cast<int>(object_property_values.size()) - 1));
-            double retval = std::sqrt(static_cast<double>(MEAN_DEV2));
-            return static_cast<T>(retval);
-            break;
-        }
-
-        case PRODUCT: {
-            T accumulator(1);
-            for (typename std::map<TemporaryPtr<const UniverseObject>, T>::const_iterator it = object_property_values.begin();
-                 it != object_property_values.end(); ++it)
-            { accumulator *= it->second; }
-            return accumulator;
-            break;
-        }
-
-        default:
-            throw std::runtime_error("ValueRef evaluated with an unknown or invalid StatisticType.");
-            break;
-    }
-
-    return T(0);
-}
-
-template <class T>
-template <class Archive>
-void ValueRef::Statistic<T>::serialize(Archive& ar, const unsigned int version)
-{
-    ar  & BOOST_SERIALIZATION_BASE_OBJECT_NVP(Variable)
-        & BOOST_SERIALIZATION_NVP(m_stat_type)
-        & BOOST_SERIALIZATION_NVP(m_sampling_condition);
-}
-
-///////////////////////////////////////////////////////////
-// ComplexVariable                                       //
-///////////////////////////////////////////////////////////
-template <class T>
-ValueRef::ComplexVariable<T>::ComplexVariable(const std::string& variable_name,
-                                              const ValueRefBase<int>* int_ref1,
-                                              const ValueRefBase<int>* int_ref2,
-                                              const ValueRefBase<std::string>* string_ref1,
-                                              const ValueRefBase<std::string>* string_ref2) :
-    Variable<T>(ValueRef::NON_OBJECT_REFERENCE, std::vector<std::string>(1, variable_name)),
-    m_int_ref1(int_ref1),
-    m_int_ref2(int_ref2),
-    m_string_ref1(string_ref1),
-    m_string_ref2(string_ref2)
-{
-    //std::cout << "ComplexVariable: " << variable_name << ", "
-    //          << int_ref1 << ", " << int_ref2 << ", "
-    //          << string_ref1 << ", " << string_ref2 << std::endl;
-}
-
-template <class T>
-ValueRef::ComplexVariable<T>::~ComplexVariable()
-{
-    delete m_int_ref1;
-    delete m_int_ref2;
-    delete m_string_ref1;
-    delete m_string_ref2;
-}
-
-template <class T>
-bool ValueRef::ComplexVariable<T>::operator==(const ValueRef::ValueRefBase<T>& rhs) const
-{
-    if (&rhs == this)
-        return true;
-    if (typeid(rhs) != typeid(*this))
-        return false;
-    const ValueRef::ComplexVariable<T>& rhs_ = static_cast<const ValueRef::ComplexVariable<T>&>(rhs);
-
-    if (this->m_property_name != rhs_.m_property_name)
-        return false;
-
-    if (m_int_ref1 == rhs_.m_int_ref1) {
-        // check next member
-    } else if (!m_int_ref1 || !rhs_.m_int_ref1) {
-        return false;
-    } else {
-        if (*m_int_ref1 != *(rhs_.m_int_ref1))
-            return false;
-    }
-
-    if (m_int_ref2 == rhs_.m_int_ref2) {
-        // check next member
-    } else if (!m_int_ref2 || !rhs_.m_int_ref2) {
-        return false;
-    } else {
-        if (*m_int_ref2 != *(rhs_.m_int_ref2))
-            return false;
-    }
-
-    if (m_string_ref1 == rhs_.m_string_ref1) {
-        // check next member
-    } else if (!m_string_ref1 || !rhs_.m_string_ref1) {
-        return false;
-    } else {
-        if (*m_string_ref1 != *(rhs_.m_string_ref1))
-            return false;
-    }
-
-    if (m_string_ref2 == rhs_.m_string_ref2) {
-        // check next member
-    } else if (!m_string_ref2 || !rhs_.m_string_ref2) {
-        return false;
-    } else {
-        if (*m_string_ref2 != *(rhs_.m_string_ref2))
-            return false;
-    }
-
-    return true;
-}
-
-template <class T>
-const ValueRef::ValueRefBase<int>* ValueRef::ComplexVariable<T>::IntRef1() const
-{ return m_int_ref1; }
-
-template <class T>
-const ValueRef::ValueRefBase<int>* ValueRef::ComplexVariable<T>::IntRef2() const
-{ return m_int_ref2; }
-
-template <class T>
-const ValueRef::ValueRefBase<std::string>* ValueRef::ComplexVariable<T>::StringRef1() const
-{ return m_string_ref1; }
-
-template <class T>
-const ValueRef::ValueRefBase<std::string>* ValueRef::ComplexVariable<T>::StringRef2() const
-{ return m_string_ref2; }
-
-template <class T>
-bool ValueRef::ComplexVariable<T>::RootCandidateInvariant() const
-{
-    return ValueRef::Variable<T>::RootCandidateInvariant()
-        && (!m_int_ref1 || m_int_ref1->RootCandidateInvariant())
-        && (!m_int_ref2 || m_int_ref2->RootCandidateInvariant())
-        && (!m_string_ref1 || m_string_ref1->RootCandidateInvariant())
-        && (!m_string_ref2 || m_string_ref2->RootCandidateInvariant());
-}
-
-template <class T>
-bool ValueRef::ComplexVariable<T>::LocalCandidateInvariant() const
-{
-    return (!m_int_ref1 || m_int_ref1->LocalCandidateInvariant())
-        && (!m_int_ref2 || m_int_ref2->LocalCandidateInvariant())
-        && (!m_string_ref1 || m_string_ref1->LocalCandidateInvariant())
-        && (!m_string_ref2 || m_string_ref2->LocalCandidateInvariant());
-}
-
-template <class T>
-bool ValueRef::ComplexVariable<T>::TargetInvariant() const
-{
-    return (!m_int_ref1 || m_int_ref1->TargetInvariant())
-        && (!m_int_ref2 || m_int_ref2->TargetInvariant())
-        && (!m_string_ref1 || m_string_ref1->TargetInvariant())
-        && (!m_string_ref2 || m_string_ref2->TargetInvariant());
-}
-
-template <class T>
-bool ValueRef::ComplexVariable<T>::SourceInvariant() const
-{
-    return (!m_int_ref1 || m_int_ref1->SourceInvariant())
-        && (!m_int_ref2 || m_int_ref2->SourceInvariant())
-        && (!m_string_ref1 || m_string_ref1->SourceInvariant())
-        && (!m_string_ref2 || m_string_ref2->SourceInvariant());
-}
-
-template <class T>
-std::string ValueRef::ComplexVariable<T>::Description() const
-{ return UserString("DESC_COMPLEX"); }
-
-template <class T>
-std::string ValueRef::ComplexVariable<T>::Dump() const
-{ return "ComplexVariable"; }
-
-namespace ValueRef {
-    template <>
-    PlanetSize ComplexVariable<PlanetSize>::Eval(const ScriptingContext& context) const;
-
-    template <>
-    PlanetType ComplexVariable<PlanetType>::Eval(const ScriptingContext& context) const;
-
-    template <>
-    PlanetEnvironment ComplexVariable<PlanetEnvironment>::Eval(const ScriptingContext& context) const;
-
-    template <>
-    UniverseObjectType ComplexVariable<UniverseObjectType>::Eval(const ScriptingContext& context) const;
-
-    template <>
-    StarType ComplexVariable<StarType>::Eval(const ScriptingContext& context) const;
-
-    template <>
-    double ComplexVariable<double>::Eval(const ScriptingContext& context) const;
-
-    template <>
-    int ComplexVariable<int>::Eval(const ScriptingContext& context) const;
-}
-
-template <class T>
-template <class Archive>
-void ValueRef::ComplexVariable<T>::serialize(Archive& ar, const unsigned int version)
-{
-    ar  & BOOST_SERIALIZATION_BASE_OBJECT_NVP(Variable)
-        & BOOST_SERIALIZATION_NVP(m_int_ref1)
-        & BOOST_SERIALIZATION_NVP(m_int_ref2)
-        & BOOST_SERIALIZATION_NVP(m_string_ref1)
-        & BOOST_SERIALIZATION_NVP(m_string_ref2);
-}
-
-///////////////////////////////////////////////////////////
-// StaticCast                                            //
-///////////////////////////////////////////////////////////
-template <class FromType, class ToType>
-ValueRef::StaticCast<FromType, ToType>::StaticCast(const ValueRef::Variable<FromType>* value_ref) :
-    ValueRef::Variable<ToType>(value_ref->GetReferenceType(), value_ref->PropertyName()),
-    m_value_ref(value_ref)
-{}
-
-template <class FromType, class ToType>
-ValueRef::StaticCast<FromType, ToType>::~StaticCast()
-{ delete m_value_ref; }
-
-template <class FromType, class ToType>
-bool ValueRef::StaticCast<FromType, ToType>::operator==(const ValueRef::ValueRefBase<ToType>& rhs) const
-{
-    if (&rhs == this)
-        return true;
-    if (typeid(rhs) != typeid(*this))
-        return false;
-    const ValueRef::StaticCast<FromType, ToType>& rhs_ =
-        static_cast<const ValueRef::StaticCast<FromType, ToType>&>(rhs);
-
-    if (m_value_ref == rhs_.m_value_ref) {
-        // check next member
-    } else if (!m_value_ref || !rhs_.m_value_ref) {
-        return false;
-    } else {
-        if (*m_value_ref != *(rhs_.m_value_ref))
-            return false;
-    }
-
-    return true;
-}
-
-template <class FromType, class ToType>
-ToType ValueRef::StaticCast<FromType, ToType>::Eval(const ScriptingContext& context) const
-{ return static_cast<ToType>(m_value_ref->Eval(context)); }
-
-template <class FromType, class ToType>
-bool ValueRef::StaticCast<FromType, ToType>::RootCandidateInvariant() const
-{ return m_value_ref->RootCandidateInvariant(); }
-
-template <class FromType, class ToType>
-bool ValueRef::StaticCast<FromType, ToType>::LocalCandidateInvariant() const
-{ return m_value_ref->LocalCandidateInvariant(); }
-
-template <class FromType, class ToType>
-bool ValueRef::StaticCast<FromType, ToType>::TargetInvariant() const
-{ return m_value_ref->TargetInvariant(); }
-
-template <class FromType, class ToType>
-bool ValueRef::StaticCast<FromType, ToType>::SourceInvariant() const
-{ return m_value_ref->SourceInvariant(); }
-
-template <class FromType, class ToType>
-std::string ValueRef::StaticCast<FromType, ToType>::Description() const
-{ return m_value_ref->Description(); }
-
-template <class FromType, class ToType>
-std::string ValueRef::StaticCast<FromType, ToType>::Dump() const
-{ return m_value_ref->Dump(); }
-
-template <class FromType, class ToType>
-template <class Archive>
-void ValueRef::StaticCast<FromType, ToType>::serialize(Archive& ar, const unsigned int version)
-{
-    ar  & BOOST_SERIALIZATION_BASE_OBJECT_NVP(ValueRefBase)
-        & BOOST_SERIALIZATION_NVP(m_value_ref);
-}
-
-///////////////////////////////////////////////////////////
-// StringCast                                            //
-///////////////////////////////////////////////////////////
-template <class FromType>
-ValueRef::StringCast<FromType>::StringCast(const ValueRef::Variable<FromType>* value_ref) :
-    ValueRef::Variable<std::string>(value_ref->GetReferenceType(), value_ref->PropertyName()),
-    m_value_ref(value_ref)
-{}
-
-template <class FromType>
-ValueRef::StringCast<FromType>::~StringCast()
-{ delete m_value_ref; }
-
-template <class FromType>
-bool ValueRef::StringCast<FromType>::operator==(const ValueRef::ValueRefBase<std::string>& rhs) const
-{
-    if (&rhs == this)
-        return true;
-    if (typeid(rhs) != typeid(*this))
-        return false;
-    const ValueRef::StringCast<FromType>& rhs_ =
-        static_cast<const ValueRef::StringCast<FromType>&>(rhs);
-
-    if (m_value_ref == rhs_.m_value_ref) {
-        // check next member
-    } else if (!m_value_ref || !rhs_.m_value_ref) {
-        return false;
-    } else {
-        if (*m_value_ref != *(rhs_.m_value_ref))
-            return false;
-    }
-
-    return true;
-}
-
-namespace ValueRef {
-    template <>
-    std::string StringCast<double>::Eval(const ScriptingContext& context) const;
-
-    template <>
-    std::string StringCast<int>::Eval(const ScriptingContext& context) const;
-}
-
-template <class FromType>
-std::string ValueRef::StringCast<FromType>::Eval(const ScriptingContext& context) const
-{ return boost::lexical_cast<std::string>(m_value_ref->Eval(context)); }
-
-template <class FromType>
-bool ValueRef::StringCast<FromType>::RootCandidateInvariant() const
-{ return m_value_ref->RootCandidateInvariant(); }
-
-template <class FromType>
-bool ValueRef::StringCast<FromType>::LocalCandidateInvariant() const
-{ return m_value_ref->LocalCandidateInvariant(); }
-
-template <class FromType>
-bool ValueRef::StringCast<FromType>::TargetInvariant() const
-{ return m_value_ref->TargetInvariant(); }
-
-template <class FromType>
-bool ValueRef::StringCast<FromType>::SourceInvariant() const
-{ return m_value_ref->SourceInvariant(); }
-
-template <class FromType>
-std::string ValueRef::StringCast<FromType>::Description() const
-{ return m_value_ref->Description(); }
-
-template <class FromType>
-std::string ValueRef::StringCast<FromType>::Dump() const
-{ return m_value_ref->Dump(); }
-
-template <class FromType>
-template <class Archive>
-void ValueRef::StringCast<FromType>::serialize(Archive& ar, const unsigned int version)
-{
-    ar  & BOOST_SERIALIZATION_BASE_OBJECT_NVP(ValueRefBase)
-        & BOOST_SERIALIZATION_NVP(m_value_ref);
-}
-
-///////////////////////////////////////////////////////////
-// UserStringLookup                                      //
-///////////////////////////////////////////////////////////
-template <class Archive>
-void ValueRef::UserStringLookup::serialize(Archive& ar, const unsigned int version)
-{
-    ar  & BOOST_SERIALIZATION_BASE_OBJECT_NVP(ValueRefBase<std::string>)
-        & BOOST_SERIALIZATION_NVP(m_value_ref);
-}
-
-///////////////////////////////////////////////////////////
-// Operation                                             //
-///////////////////////////////////////////////////////////
-template <class T>
-ValueRef::Operation<T>::Operation(OpType op_type, const ValueRefBase<T>* operand1, const ValueRefBase<T>* operand2) :
-    m_op_type(op_type),
-    m_operand1(operand1),
-    m_operand2(operand2)
-{}
-
-template <class T>
-ValueRef::Operation<T>::Operation(OpType op_type, const ValueRefBase<T>* operand) :
-    m_op_type(op_type),
-    m_operand1(operand),
-    m_operand2(0)
-{}
-
-template <class T>
-ValueRef::Operation<T>::~Operation()
-{
-    delete m_operand1;
-    delete m_operand2;
-}
-
-template <class T>
-bool ValueRef::Operation<T>::operator==(const ValueRef::ValueRefBase<T>& rhs) const
-{
-    if (&rhs == this)
-        return true;
-    if (typeid(rhs) != typeid(*this))
-        return false;
-    const ValueRef::Operation<T>& rhs_ = static_cast<const ValueRef::Operation<T>&>(rhs);
-
-    if (m_operand1 == rhs_.m_operand1) {
-        // check next member
-    } else if (!m_operand1 || !rhs_.m_operand1) {
-        return false;
-    } else {
-        if (*m_operand1 != *(rhs_.m_operand1))
-            return false;
-    }
-
-    if (m_operand2 == rhs_.m_operand2) {
-        // check next member
-    } else if (!m_operand2 || !rhs_.m_operand2) {
-        return false;
-    } else {
-        if (*m_operand2 != *(rhs_.m_operand2))
-            return false;
-    }
-
-    return true;
-}
-
-template <class T>
-ValueRef::OpType ValueRef::Operation<T>::GetOpType() const
-{ return m_op_type; }
-
-template <class T>
-const ValueRef::ValueRefBase<T>* ValueRef::Operation<T>::LHS() const
-{ return m_operand1; }
-
-template <class T>
-const ValueRef::ValueRefBase<T>* ValueRef::Operation<T>::RHS() const
-{ return m_operand2; }
-
-template <class T>
-T ValueRef::Operation<T>::Eval(const ScriptingContext& context) const
-{
-    switch (m_op_type) {
-        case PLUS:
-            return T(m_operand1->Eval(context) +
-                     m_operand2->Eval(context));
-            break;
-        case MINUS:
-            return T(m_operand1->Eval(context) -
-                     m_operand2->Eval(context));
-            break;
-        default:
-            throw std::runtime_error("ValueRef evaluated with an unknown or invalid OpType.");
-            break;
-    }
-}
-
-namespace ValueRef {
-    template <>
-    std::string Operation<std::string>::Eval(const ScriptingContext& context) const;
-
-    template <>
-    double      Operation<double>::Eval(const ScriptingContext& context) const;
-
-    template <>
-    int         Operation<int>::Eval(const ScriptingContext& context) const;
-}
-
-template <class T>
-bool ValueRef::Operation<T>::RootCandidateInvariant() const
-{
-    if (m_op_type == RANDOM_UNIFORM)
-        return false;
-    if (m_operand1 && !m_operand1->RootCandidateInvariant())
-        return false;
-    if (m_operand2 && !m_operand2->RootCandidateInvariant())
-        return false;
-    return true;
-}
-
-template <class T>
-bool ValueRef::Operation<T>::LocalCandidateInvariant() const
-{
-    if (m_op_type == RANDOM_UNIFORM)
-        return false;
-    if (m_operand1 && !m_operand1->LocalCandidateInvariant())
-        return false;
-    if (m_operand2 && !m_operand2->LocalCandidateInvariant())
-        return false;
-    return true;
-}
-
-template <class T>
-bool ValueRef::Operation<T>::TargetInvariant() const
-{
-    if (m_op_type == RANDOM_UNIFORM)
-        return false;
-    if (m_operand1 && !m_operand1->TargetInvariant())
-        return false;
-    if (m_operand2 && !m_operand2->TargetInvariant())
-        return false;
-    return true;
-}
-
-template <class T>
-bool ValueRef::Operation<T>::SourceInvariant() const
-{
-    if (m_op_type == RANDOM_UNIFORM)
-        return false;
-    if (m_operand1 && !m_operand1->SourceInvariant())
-        return false;
-    if (m_operand2 && !m_operand2->SourceInvariant())
-        return false;
-    return true;
-}
-
-template <class T>
-std::string ValueRef::Operation<T>::Description() const
-{
-    if (m_op_type == NEGATE) {
-        //Logger().debugStream() << "Operation is negation";
-        if (const ValueRef::Operation<T>* rhs = dynamic_cast<const ValueRef::Operation<T>*>(m_operand1)) {
-            OpType op_type = rhs->GetOpType();
-            if (op_type == PLUS     || op_type == MINUS ||
-                op_type == TIMES    || op_type == DIVIDE ||
-                op_type == NEGATE   || op_type == EXPONENTIATE)
-            return "-(" + m_operand1->Description() + ")";
-        } else {
-            return "-" + m_operand1->Description();
-        }
-    }
-
-    if (m_op_type == ABS)
-        return "abs(" + m_operand1->Description() + ")";
-    if (m_op_type == LOGARITHM)
-        return "log(" + m_operand1->Description() + ")";
-    if (m_op_type == SINE)
-        return "sin(" + m_operand1->Description() + ")";
-    if (m_op_type == COSINE)
-        return "cos(" + m_operand1->Description() + ")";
-    if (m_op_type == MINIMUM)
-        return "min(" + m_operand1->Description() + ", " + m_operand1->Description() + ")";
-    if (m_op_type == MAXIMUM)
-        return "max(" + m_operand1->Description() + ", " + m_operand1->Description() + ")";
-    if (m_op_type == RANDOM_UNIFORM)
-        return "random(" + m_operand1->Description() + ", " + m_operand1->Description() + ")";
-
-
-    bool parenthesize_lhs = false;
-    bool parenthesize_rhs = false;
-    if (const ValueRef::Operation<T>* lhs = dynamic_cast<const ValueRef::Operation<T>*>(m_operand1)) {
-        OpType op_type = lhs->GetOpType();
-        if (
-            (m_op_type == EXPONENTIATE &&
-             (op_type == EXPONENTIATE   || op_type == TIMES     || op_type == DIVIDE ||
-              op_type == PLUS           || op_type == MINUS     || op_type == NEGATE)
-            ) ||
-            ((m_op_type == TIMES        || m_op_type == DIVIDE) &&
-             (op_type == PLUS           || op_type == MINUS)    || op_type == NEGATE)
-           )
-            parenthesize_lhs = true;
-    }
-    if (const ValueRef::Operation<T>* rhs = dynamic_cast<const ValueRef::Operation<T>*>(m_operand2)) {
-        OpType op_type = rhs->GetOpType();
-        if (
-            (m_op_type == EXPONENTIATE &&
-             (op_type == EXPONENTIATE   || op_type == TIMES     || op_type == DIVIDE ||
-              op_type == PLUS           || op_type == MINUS     || op_type == NEGATE)
-            ) ||
-            ((m_op_type == TIMES        || m_op_type == DIVIDE) &&
-             (op_type == PLUS           || op_type == MINUS)    || op_type == NEGATE)
-           )
-            parenthesize_rhs = true;
-    }
-
-    std::string retval;
-    if (parenthesize_lhs)
-        retval += '(' + m_operand1->Description() + ')';
-    else
-        retval += m_operand1->Description();
-
-    switch (m_op_type) {
-    case PLUS:          retval += " + "; break;
-    case MINUS:         retval += " - "; break;
-    case TIMES:         retval += " * "; break;
-    case DIVIDE:        retval += " / "; break;
-    case EXPONENTIATE:  retval += " ^ "; break;
-    default:            retval += " ? "; break;
-    }
-
-    if (parenthesize_rhs)
-        retval += '(' + m_operand2->Description() + ')';
-    else
-        retval += m_operand2->Description();
-
-    return retval;
-}
-
-namespace ValueRef {
-    template <>
-    std::string Operation<double>::Description() const;
-}
-
-template <class T>
-std::string ValueRef::Operation<T>::Dump() const
-{
-    if (m_op_type == NEGATE) {
-        if (const ValueRef::Operation<T>* rhs = dynamic_cast<const ValueRef::Operation<T>*>(m_operand1)) {
-            OpType op_type = rhs->GetOpType();
-            if (op_type == PLUS     || op_type == MINUS ||
-                op_type == TIMES    || op_type == DIVIDE ||
-                op_type == NEGATE   || op_type == EXPONENTIATE)
-            return "-(" + m_operand1->Dump() + ")";
-        } else {
-            return "-" + m_operand1->Dump();
-        }
-    }
-
-    if (m_op_type == ABS)
-        return "abs(" + m_operand1->Dump() + ")";
-    if (m_op_type == LOGARITHM)
-        return "log(" + m_operand1->Dump() + ")";
-    if (m_op_type == SINE)
-        return "sin(" + m_operand1->Dump() + ")";
-    if (m_op_type == COSINE)
-        return "cos(" + m_operand1->Dump() + ")";
-    if (m_op_type == MINIMUM)
-        return "min(" + m_operand1->Dump() + ", " + m_operand1->Dump() + ")";
-    if (m_op_type == MAXIMUM)
-        return "max(" + m_operand1->Dump() + ", " + m_operand1->Dump() + ")";
-    if (m_op_type == RANDOM_UNIFORM)
-        return "random(" + m_operand1->Dump() + ", " + m_operand1->Dump() + ")";
-
-
-    bool parenthesize_lhs = false;
-    bool parenthesize_rhs = false;
-    if (const ValueRef::Operation<T>* lhs = dynamic_cast<const ValueRef::Operation<T>*>(m_operand1)) {
-        OpType op_type = lhs->GetOpType();
-        if (
-            (m_op_type == EXPONENTIATE &&
-             (op_type == EXPONENTIATE   || op_type == TIMES     || op_type == DIVIDE ||
-              op_type == PLUS           || op_type == MINUS     || op_type == NEGATE)
-            ) ||
-            ((m_op_type == TIMES        || m_op_type == DIVIDE) &&
-             (op_type == PLUS           || op_type == MINUS)    || op_type == NEGATE)
-           )
-            parenthesize_lhs = true;
-    }
-    if (const ValueRef::Operation<T>* rhs = dynamic_cast<const ValueRef::Operation<T>*>(m_operand2)) {
-        OpType op_type = rhs->GetOpType();
-        if (
-            (m_op_type == EXPONENTIATE &&
-             (op_type == EXPONENTIATE   || op_type == TIMES     || op_type == DIVIDE ||
-              op_type == PLUS           || op_type == MINUS     || op_type == NEGATE)
-            ) ||
-            ((m_op_type == TIMES        || m_op_type == DIVIDE) &&
-             (op_type == PLUS           || op_type == MINUS)    || op_type == NEGATE)
-           )
-            parenthesize_rhs = true;
-    }
-
-    std::string retval;
-    if (parenthesize_lhs)
-        retval += '(' + m_operand1->Dump() + ')';
-    else
-        retval += m_operand1->Dump();
-
-    switch (m_op_type) {
-    case PLUS:          retval += " + "; break;
-    case MINUS:         retval += " - "; break;
-    case TIMES:         retval += " * "; break;
-    case DIVIDE:        retval += " / "; break;
-    case EXPONENTIATE:  retval += " ^ "; break;
-    default:            retval += " ? "; break;
-    }
-
-    if (parenthesize_rhs)
-        retval += '(' + m_operand2->Dump() + ')';
-    else
-        retval += m_operand2->Dump();
-
-    return retval;
-}
-
-template <class T>
-template <class Archive>
-void ValueRef::Operation<T>::serialize(Archive& ar, const unsigned int version)
-{
-    ar  & BOOST_SERIALIZATION_BASE_OBJECT_NVP(ValueRefBase)
-        & BOOST_SERIALIZATION_NVP(m_op_type)
-        & BOOST_SERIALIZATION_NVP(m_operand1)
-        & BOOST_SERIALIZATION_NVP(m_operand2);
-}
-
-template <class T>
-bool ValueRef::ConstantExpr(const ValueRefBase<T>* expr)
-{
-    assert(expr);
-    if (dynamic_cast<const Constant<T>*>(expr))
-        return true;
-    else if (dynamic_cast<const Variable<T>*>(expr))
-        return false;
-    else if (const Operation<T>* op = dynamic_cast<const Operation<T>*>(expr))
-        return ConstantExpr(op->LHS()) && ConstantExpr(op->RHS());
-    return false;
-}
-
+template struct FO_COMMON_API ValueRef::Operation<int>;
+template struct FO_COMMON_API ValueRef::Operation<double>;
+template struct FO_COMMON_API ValueRef::Operation<std::string>;
 
 #endif // _ValueRef_h_

@@ -1,5 +1,4 @@
 #include "Label.h"
-#include "Parse.h"
 #include "ParseImpl.h"
 
 #include "../Empire/Empire.h"
@@ -80,11 +79,13 @@ namespace {
 }
 
 namespace parse {
-    bool alignments(const boost::filesystem::path& path,
-                    std::vector<Alignment>& alignments_,
-                    std::vector<boost::shared_ptr<const Effect::EffectsGroup> >& effects_groups)
-    {
-        g_effects_groups = &effects_groups;
-        return detail::parse_file<rules, std::vector<Alignment> >(path, alignments_);
+    namespace lib {
+        bool alignments(const boost::filesystem::path& path,
+            std::vector<Alignment>& alignments_,
+            std::vector<boost::shared_ptr<const Effect::EffectsGroup> >& effects_groups)
+        {
+            g_effects_groups = &effects_groups;
+            return detail::parse_file<rules, std::vector<Alignment> >(path, alignments_);
+        }
     }
 }

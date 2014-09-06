@@ -1,5 +1,4 @@
 #include "Label.h"
-#include "Parse.h"
 #include "ParseImpl.h"
 
 #include <boost/spirit/home/phoenix.hpp>
@@ -109,6 +108,10 @@ namespace {
 }
 
 namespace parse {
-    bool keymaps(const boost::filesystem::path& path, NamedKeymaps& nkm)
-    { return detail::parse_file<rules, NamedKeymaps>(path, nkm); }
+    namespace lib {
+        bool keymaps(const boost::filesystem::path& path, NamedKeymaps& nkm)
+        {
+            return detail::parse_file<rules, NamedKeymaps>(path, nkm);
+        }
+    }
 }

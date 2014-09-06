@@ -45,6 +45,12 @@
     <Filter Include="Source Files\cmake">
       <UniqueIdentifier>{6ffe6d1e-98f6-4958-9efb-3ceb8ff2c1c0}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\parse">
+      <UniqueIdentifier>{99d190ad-fb97-4e59-87c5-7d20a9dbac4c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\parse">
+      <UniqueIdentifier>{456f65dd-3408-4f54-9c78-1717fe2f3dce}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\util\Serialize.ipp">
@@ -262,6 +268,9 @@
     <ClInclude Include="..\..\combat\CombatEvents.h">
       <Filter>Header Files\combat</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\parse\Parse.h">
+      <Filter>Header Files\parse</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\network\MessageQueue.cpp">
@@ -473,6 +482,12 @@
     </ClCompile>
     <ClCompile Include="..\..\combat\CombatEvent.cpp">
       <Filter>Source Files\combat</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\util\Process.cpp">
+      <Filter>Source Files\util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\parse\Parse.cpp">
+      <Filter>Source Files\parse</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
