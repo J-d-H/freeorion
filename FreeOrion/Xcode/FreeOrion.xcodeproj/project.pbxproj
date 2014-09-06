@@ -370,7 +370,7 @@
 		82B743DF184E127A001A5803 /* PythonUniverseGenerator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 82B743DE184E127A001A5803 /* PythonUniverseGenerator.cpp */; };
 		82B9D447180C53FE0032F86D /* GraphControl.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 82B9D445180C53FE0032F86D /* GraphControl.cpp */; };
 		82BEB659159853B300B024CB /* Diplomacy.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 82BEB657159853B300B024CB /* Diplomacy.cpp */; };
-		82C07470149DE72D00E76876 /* Parse.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 825936F1147E3B1B00B840A5 /* Parse.cpp */; };
+		82C07470149DE72D00E76876 /* ParseImpl.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 825936F1147E3B1B00B840A5 /* ParseImpl.cpp */; };
 		82C07479149DE7CE00E76876 /* freeorionparse.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 82C07438149DE46200E76876 /* freeorionparse.dylib */; };
 		82C0747C149DE80300E76876 /* freeorionparse.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 82C07438149DE46200E76876 /* freeorionparse.dylib */; };
 		82C0747F149DE83000E76876 /* freeorionparse.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 82C07438149DE46200E76876 /* freeorionparse.dylib */; };
@@ -1257,7 +1257,7 @@
 		825936EE147E3B1B00B840A5 /* Lexer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Lexer.cpp; sourceTree = "<group>"; };
 		825936EF147E3B1B00B840A5 /* Lexer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Lexer.h; sourceTree = "<group>"; };
 		825936F0147E3B1B00B840A5 /* MonsterFleetPlansParser.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MonsterFleetPlansParser.cpp; sourceTree = "<group>"; };
-		825936F1147E3B1B00B840A5 /* Parse.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Parse.cpp; sourceTree = "<group>"; };
+		825936F1147E3B1B00B840A5 /* ParseImpl.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ParseImpl.cpp; sourceTree = "<group>"; };
 		825936F2147E3B1B00B840A5 /* Parse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Parse.h; sourceTree = "<group>"; };
 		825936F3147E3B1B00B840A5 /* ParseImpl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ParseImpl.h; sourceTree = "<group>"; };
 		825936F5147E3B1B00B840A5 /* PlanetEnvironmentValueRefParser.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PlanetEnvironmentValueRefParser.cpp; sourceTree = "<group>"; };
@@ -2695,7 +2695,7 @@
 				825936EE147E3B1B00B840A5 /* Lexer.cpp */,
 				825936EF147E3B1B00B840A5 /* Lexer.h */,
 				825936F0147E3B1B00B840A5 /* MonsterFleetPlansParser.cpp */,
-				825936F1147E3B1B00B840A5 /* Parse.cpp */,
+				825936F1147E3B1B00B840A5 /* ParseImpl.cpp */,
 				825936F2147E3B1B00B840A5 /* Parse.h */,
 				825936F3147E3B1B00B840A5 /* ParseImpl.h */,
 				825936F5147E3B1B00B840A5 /* PlanetEnvironmentValueRefParser.cpp */,
@@ -3409,7 +3409,7 @@
 				3A76045017499F1E00363653 /* Label.cpp in Sources */,
 				3A7604A11749A0CB00363653 /* Lexer.cpp in Sources */,
 				3A7604A01749A0BF00363653 /* MonsterFleetPlansParser.cpp in Sources */,
-				82C07470149DE72D00E76876 /* Parse.cpp in Sources */,
+				82C07470149DE72D00E76876 /* ParseImpl.cpp in Sources */,
 				3A76046217499F3000363653 /* PlanetEnvironmentValueRefParser.cpp in Sources */,
 				3A76046317499F3D00363653 /* PlanetSizeValueRefParser.cpp in Sources */,
 				3A76046417499F4C00363653 /* PlanetTypeValueRefParser.cpp in Sources */,

@@ -41,9 +41,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FreeOrionCA", "FreeOrionCA\
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Parsers", "Parsers\Parsers.vcxproj", "{9925F25C-A72E-42AE-B2E3-6657255BF293}"
-	ProjectSection(ProjectDependencies) = postProject
-		{DFF7D1E4-1A95-407A-B84C-AB57A20A9485} = {DFF7D1E4-1A95-407A-B84C-AB57A20A9485}
-	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "log4cpp", "log4cpp\log4cpp.vcxproj", "{DFF7D1E4-1A95-407A-B84C-AB57A20A9485}"
 EndProject

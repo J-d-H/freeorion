@@ -58,7 +58,7 @@ set (freeorionparse_SOURCE
     Label.cpp
     Lexer.cpp
     MonsterFleetPlansParser.cpp
-    Parse.cpp
+    ParseImpl.cpp
     PlanetEnvironmentValueRefParser.cpp
     PlanetSizeValueRefParser.cpp
     PlanetTypeValueRefParser.cpp

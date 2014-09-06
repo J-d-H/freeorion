@@ -68,7 +68,7 @@
     <ClCompile Include="..\..\parse\MonsterFleetPlansParser.cpp">
       <Filter>Source Files\parse</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\parse\Parse.cpp">
+    <ClCompile Include="..\..\parse\ParseImpl.cpp">
       <Filter>Source Files\parse</Filter>
     </ClCompile>
     <ClCompile Include="..\..\parse\PlanetEnvironmentValueRefParser.cpp">

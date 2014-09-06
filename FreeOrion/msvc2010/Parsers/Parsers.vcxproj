@@ -127,7 +127,7 @@
     <ClCompile Include="..\..\parse\Label.cpp" />
     <ClCompile Include="..\..\parse\Lexer.cpp" />
     <ClCompile Include="..\..\parse\MonsterFleetPlansParser.cpp" />
-    <ClCompile Include="..\..\parse\Parse.cpp" />
+    <ClCompile Include="..\..\parse\ParseImpl.cpp" />
     <ClCompile Include="..\..\parse\PlanetEnvironmentValueRefParser.cpp" />
     <ClCompile Include="..\..\parse\PlanetSizeValueRefParser.cpp" />
     <ClCompile Include="..\..\parse\PlanetTypeValueRefParser.cpp" />
